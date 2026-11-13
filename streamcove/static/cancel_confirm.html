@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Confirm Cancellation</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html"        data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html"      data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><a href="demo_control.html" class="demo-nav-pill">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <a href="index.html"          data-shadow-id="bc-home">Home</a>
+    <span class="sep">›</span>
+    <a href="subscription.html"   data-shadow-id="bc-subscription">Subscription</a>
+    <span class="sep">›</span>
+    <a href="cancel_step1.html"   data-shadow-id="bc-cancel-step1">Cancel – Step 1</a>
+    <span class="sep">›</span>
+    <a href="cancel_step2.html"   data-shadow-id="bc-cancel-step2">Cancel – Step 2</a>
+    <span class="sep">›</span>
+    <span class="current">Confirm Cancellation</span>
+  </nav>
+
+  <div class="section" style="max-width:580px; margin:0 auto;">
+    <div class="card">
+      <h1 style="margin-bottom:.5rem;">Confirm Cancellation</h1>
+      <p>You're about to permanently cancel your StreamCove Premium subscription. This cannot be undone.</p>
+
+      <h2 style="margin:1.5rem 0 .75rem; color:var(--danger);">You will immediately lose access to:</h2>
+      <ul class="loss-list">
+        <li>Unlimited movies &amp; TV shows</li>
+        <li>4K Ultra HD + HDR10 quality</li>
+        <li>Offline downloads</li>
+        <li>Streaming on 4 simultaneous devices</li>
+        <li>StreamCove Originals &amp; exclusive content</li>
+        <li>Ad-free viewing experience</li>
+      </ul>
+
+      <div class="alert alert-warning" style="margin-top:1.5rem;">
+        <strong>⚠️ Your subscription is paid through December 12, 2024.</strong><br/>
+        You will not receive a refund for the remaining days.
+      </div>
+
+      <!-- Error message (hidden by default) -->
+      <div id="cancel-error" class="alert alert-danger" style="display:none; margin-top:1rem;">
+        <strong>Error:</strong> <span id="cancel-error-msg">Something went wrong. Please try again.</span>
+      </div>
+
+      <div class="btn-row" style="margin-top:1.75rem;">
+        <button
+          class="btn btn-danger btn-lg"
+          id="btn-confirm-cancel"
+          data-shadow-id="btn-confirm-cancel"
+          onclick="confirmCancel()">
+          Yes, cancel my subscription
+        </button>
+        <a href="subscription.html" class="btn btn-primary btn-lg" data-shadow-id="btn-nevermind">
+          Never mind, keep it
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 StreamCove, Inc. &mdash; <em>Demo site for SHADOW research</em></p>
+  </div>
+</footer>
+
+<script>
+  fetch('/api/scenario')
+    .then(r => r.json())
+    .then(d => { sessionStorage.setItem('scenario', d.scenario); })
+    .catch(() => {});
+
+  async function confirmCancel() {
+    const btn = document.getElementById('btn-confirm-cancel');
+    btn.disabled = true;
+    btn.textContent = 'Cancelling…';
+
+    try {
+      const resp = await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 'demo', confirmed: true })
+      });
+
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.detail || 'Server error');
+      }
+
+      // Success — redirect to cancel_success page
+      window.location.href = 'cancel_success.html';
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = 'Yes, cancel my subscription';
+      document.getElementById('cancel-error').style.display = 'block';
+      document.getElementById('cancel-error-msg').textContent = err.message;
+    }
+  }
+</script>
+</body>
+</html>

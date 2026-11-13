@@ -1,0 +1,58 @@
+{
+  "model_type": "TF-IDF (1-2 grams) + Logistic Regression",
+  "dataset": "Yamanalab EC Darkpattern",
+  "license": "Apache-2.0",
+  "total_unique_samples": 2258,
+  "test_size": 452,
+  "metrics": {
+    "precision": 0.9571,
+    "recall": 0.922,
+    "f1_score": 0.9393,
+    "confusion_matrix": [
+      [
+        225,
+        9
+      ],
+      [
+        17,
+        201
+      ]
+    ],
+    "full_report": {
+      "Not Dark Pattern": {
+        "precision": 0.9297520661157025,
+        "recall": 0.9615384615384616,
+        "f1-score": 0.9453781512605042,
+        "support": 234.0
+      },
+      "Dark Pattern": {
+        "precision": 0.9571428571428572,
+        "recall": 0.9220183486238532,
+        "f1-score": 0.9392523364485982,
+        "support": 218.0
+      },
+      "accuracy": 0.9424778761061947,
+      "macro avg": {
+        "precision": 0.9434474616292798,
+        "recall": 0.9417784050811574,
+        "f1-score": 0.9423152438545512,
+        "support": 452.0
+      },
+      "weighted avg": {
+        "precision": 0.9429626688677373,
+        "recall": 0.9424778761061947,
+        "f1-score": 0.9424236653556469,
+        "support": 452.0
+      }
+    }
+  },
+  "hyperparameters": {
+    "tfidf_ngram_range": [
+      1,
+      2
+    ],
+    "tfidf_max_features": 4000,
+    "clf_C": 2.0,
+    "class_weight": "balanced"
+  }
+}

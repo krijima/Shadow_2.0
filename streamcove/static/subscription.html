@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Manage Subscription</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    /* Extra: very-hidden cancel link for the hidden_cancellation scenario */
+    .cancel-hidden-dropdown {
+      margin-top: 2rem;
+      font-size: .65rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html"        data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html"      data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" class="active" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><a href="demo_control.html" class="demo-nav-pill">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container" id="main-content">
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <a href="index.html" data-shadow-id="bc-home">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Subscription</span>
+  </nav>
+
+  <div class="section">
+    <h1 style="margin-bottom:1.5rem;">My Subscription</h1>
+
+    <!-- Current plan -->
+    <div class="card">
+      <div class="sub-status-row">
+        <h2>StreamCove Premium</h2>
+        <span class="badge badge-success">ACTIVE</span>
+      </div>
+
+      <div class="plan-card" style="margin-top:1rem;">
+        <div>
+          <div class="plan-name">Premium Plan</div>
+          <div style="color: var(--text-secondary); font-size:.9rem; margin-top:.35rem;">
+            Unlimited streaming · 4K Ultra HD · 4 screens
+          </div>
+        </div>
+        <div class="plan-price">$14.99<span>/month</span></div>
+      </div>
+
+      <div style="margin-top:1.5rem; display:flex; gap:2rem; flex-wrap:wrap;">
+        <div>
+          <div class="form-label">Status</div>
+          <span class="badge badge-success">Active</span>
+        </div>
+        <div>
+          <div class="form-label">Next Billing Date</div>
+          <div id="next-billing" style="color:var(--text-primary); font-weight:600;">December 12, 2024</div>
+        </div>
+        <div>
+          <div class="form-label">Payment Method</div>
+          <div style="color:var(--text-secondary);">Visa ····4242</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features card -->
+    <div class="card">
+      <h2 style="margin-bottom:1rem;">What's Included</h2>
+      <ul class="benefit-list">
+        <li>Unlimited movies &amp; TV shows</li>
+        <li>4K Ultra HD + HDR10 quality</li>
+        <li>Download for offline viewing</li>
+        <li>Stream on 4 devices simultaneously</li>
+        <li>Access to StreamCove Originals</li>
+        <li>No ads, ever</li>
+      </ul>
+    </div>
+
+    <!-- Cancel section — normal mode -->
+    <div class="card" id="cancel-section-normal">
+      <h2 style="margin-bottom:.5rem;">Manage Plan</h2>
+      <p>Want to make changes to your subscription? You can cancel at any time.</p>
+      <div class="btn-row">
+        <a href="cancel_step1.html" class="btn btn-danger" data-shadow-id="btn-cancel-subscription" id="btn-cancel-normal">
+          Cancel Subscription
+        </a>
+      </div>
+    </div>
+
+    <!-- Cancel section — hidden_cancellation scenario (barely visible) -->
+    <div class="cancel-hidden-dropdown" id="cancel-section-hidden" style="display:none;">
+      <div class="dropdown">
+        <button class="dropdown-toggle" data-shadow-id="btn-other-options">other options ▴</button>
+        <div class="dropdown-menu">
+          <!-- Same-colour-as-background link, minuscule text -->
+          <a href="cancel_step1.html"
+             data-shadow-id="btn-cancel-subscription"
+             style="font-size:.6rem; color:var(--bg-primary); background:var(--bg-primary);">
+            cancel subscription
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section -->
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 StreamCove, Inc. &mdash; <em>Demo site for SHADOW research</em></p>
+  </div>
+</footer>
+
+<script>
+  // Calculate next billing date (30 days from now)
+  const next = new Date();
+  next.setDate(next.getDate() + 30);
+  document.getElementById('next-billing').textContent = next.toLocaleDateString('en-US', {year:'numeric', month:'long', day:'numeric'});
+
+  // Load scenario and apply dark-pattern class if needed
+  fetch('/api/scenario')
+    .then(r => r.json())
+    .then(d => {
+      const scenario = d.scenario;
+      sessionStorage.setItem('scenario', scenario);
+
+      if (scenario === 'hidden_cancellation') {
+        document.getElementById('cancel-section-normal').style.display = 'none';
+        document.getElementById('cancel-section-hidden').style.display  = 'block';
+        document.getElementById('main-content').classList.add('scenario-hidden-cancellation');
+      }
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

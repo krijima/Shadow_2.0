@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Account Settings</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html"       data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html" class="active" data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><button id="btn-settings-gear" data-shadow-id="btn-settings-gear" class="btn btn-ghost" title="Settings gear" style="padding:4px 8px;font-size:0.9rem;">⚙️ Settings</button></li>
+      <li><a href="demo_control.html" class="demo-nav-pill">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <a href="index.html" data-shadow-id="bc-home">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Account</span>
+  </nav>
+
+  <div class="section">
+    <h1 style="margin-bottom:1.5rem;">Account Settings</h1>
+
+    <!-- Profile card -->
+    <div class="card">
+      <h2 style="margin-bottom:1.25rem;">Profile Information</h2>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" value="Demo User" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" value="demo@streamcove.example" readonly/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Member Since</label>
+        <input type="text" id="member-since" value="November 2024" readonly/>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" disabled data-shadow-id="btn-edit-profile">Edit Profile (Demo)</button>
+      </div>
+    </div>
+
+    <!-- Subscription summary card -->
+    <div class="card">
+      <h2 style="margin-bottom:1rem;">Subscription</h2>
+      <div class="sub-status-row">
+        <span class="plan-name">StreamCove Premium</span>
+        <span class="badge badge-success">ACTIVE</span>
+      </div>
+      <p>Your plan renews automatically at <strong>$14.99/month</strong>.</p>
+      <div class="btn-row">
+        <a href="subscription.html" class="btn btn-primary" data-shadow-id="link-manage-subscription">Manage Subscription</a>
+      </div>
+    </div>
+
+    <!-- Security card -->
+    <div class="card">
+      <h2 style="margin-bottom:1rem;">Security</h2>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="text" value="••••••••••••" readonly/>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" disabled data-shadow-id="btn-change-password">Change Password (Demo)</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 StreamCove, Inc. &mdash; <em>Demo site for SHADOW research</em></p>
+  </div>
+</footer>
+
+<script>
+  fetch('/api/scenario')
+    .then(r => r.json())
+    .then(d => { sessionStorage.setItem('scenario', d.scenario); })
+    .catch(() => {});
+</script>
+</body>
+</html>

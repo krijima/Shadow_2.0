@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Home</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active" data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html" data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><button id="btn-settings-gear" data-shadow-id="btn-settings-gear" class="btn btn-ghost" title="Settings gear" style="padding:4px 8px;font-size:0.9rem;" onclick="location.href='account.html'">⚙️ Settings</button></li>
+      <li><a href="demo_control.html" class="demo-nav-pill">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+  <!-- Breadcrumbs -->
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <span class="current">Home</span>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>Welcome back, Demo User 👋</h1>
+    <p>Your premium streaming experience awaits. Enjoy unlimited movies, TV shows, and originals.</p>
+    <a href="subscription.html" class="btn btn-primary btn-lg" data-shadow-id="link-subscription-cta">View My Subscription</a>
+  </section>
+
+  <!-- Subscription status card -->
+  <div class="card">
+    <div class="sub-status-row">
+      <h2>Your Plan</h2>
+      <span id="status-badge" class="badge badge-success">ACTIVE</span>
+    </div>
+    <div class="plan-card">
+      <div>
+        <div class="plan-name">StreamCove Premium</div>
+        <div style="color: var(--text-secondary); font-size:.9rem; margin-top:.35rem;">Unlimited streaming · 4K Ultra HD · 4 screens</div>
+      </div>
+      <div class="plan-price">$14.99<span>/month</span></div>
+    </div>
+    <ul class="benefit-list" style="margin-top:1.25rem;">
+      <li>Unlimited movies &amp; TV shows</li>
+      <li>4K Ultra HD + HDR10 quality</li>
+      <li>Download for offline viewing</li>
+      <li>Stream on 4 devices simultaneously</li>
+    </ul>
+  </div>
+
+  <!-- Quick links -->
+  <div class="card">
+    <h2 style="margin-bottom:1rem;">Quick Links</h2>
+    <div class="btn-row">
+      <a href="account.html"      class="btn btn-ghost"    data-shadow-id="link-account-quick">Account Settings</a>
+      <a href="subscription.html" class="btn btn-ghost"    data-shadow-id="link-subscription-quick">Manage Subscription</a>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 StreamCove, Inc. &mdash; <em>Demo site for SHADOW research</em></p>
+  </div>
+</footer>
+
+<script>
+  // Fetch scenario and store in sessionStorage
+  fetch('/api/scenario')
+    .then(r => r.json())
+    .then(d => { sessionStorage.setItem('scenario', d.scenario); })
+    .catch(() => {});
+</script>
+</body>
+</html>

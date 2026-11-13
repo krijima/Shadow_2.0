@@ -1,0 +1,182 @@
+[
+  {
+    "text": "No thanks, I prefer paying full retail price for my groceries",
+    "label": 1,
+    "type": "confirm_shaming",
+    "description": "Shaming user into declining savings"
+  },
+  {
+    "text": "No, I don't want to protect my identity online",
+    "label": 1,
+    "type": "confirm_shaming",
+    "description": "Manipulative decline button text"
+  },
+  {
+    "text": "I'd rather miss out on exclusive insider perks and deals",
+    "label": 1,
+    "type": "confirm_shaming",
+    "description": "FOMO-inducing decline link"
+  },
+  {
+    "text": "No thanks, I hate getting free product upgrades and bonuses",
+    "label": 1,
+    "type": "confirm_shaming",
+    "description": "Guilt-inducing button"
+  },
+  {
+    "text": "No, I choose to remain unprotected against phishing attacks",
+    "label": 1,
+    "type": "confirm_shaming",
+    "description": "Coercive security opt-out phrasing"
+  },
+  {
+    "text": "Wait before you cancel! Take 50% off for your next 3 months to stay and save with us!",
+    "label": 1,
+    "type": "retention_obstacle",
+    "description": "Aggressive retention offer during cancellation flow"
+  },
+  {
+    "text": "Special offer just for you: accept offer now and keep your VIP membership for $4.99/mo!",
+    "label": 1,
+    "type": "retention_obstacle",
+    "description": "Prominent retention barrier"
+  },
+  {
+    "text": "Don't leave us today! We don't want to lose you, take 60% off for your next billing cycle.",
+    "label": 1,
+    "type": "retention_obstacle",
+    "description": "Retention discount blocking cancellation"
+  },
+  {
+    "text": "One last offer: stay and save with our annual loyalty pass at a steep 75% discount!",
+    "label": 1,
+    "type": "retention_obstacle",
+    "description": "Last-chance retention offer"
+  },
+  {
+    "text": "Exclusive deal unlocked: claim your $10 monthly credit if you keep your account open.",
+    "label": 1,
+    "type": "retention_obstacle",
+    "description": "Financial bribe retention obstacle"
+  },
+  {
+    "text": "High demand! Offer expires in 00:59 seconds! Claim your discount before the countdown ends!",
+    "label": 1,
+    "type": "fake_urgency",
+    "description": "Artificial countdown pressure"
+  },
+  {
+    "text": "Hurry! Only 1 left in stock at this clearance price! 34 other shoppers are looking at this item right now!",
+    "label": 1,
+    "type": "fake_urgency",
+    "description": "Fake scarcity and social proof"
+  },
+  {
+    "text": "Flash deal expiring today! Only today can you secure this rate before standard pricing resumes.",
+    "label": 1,
+    "type": "suspicious_urgency",
+    "description": "Suspicious unverified urgency"
+  },
+  {
+    "text": "Limited time offer! Act fast before prices increase at midnight!",
+    "label": 1,
+    "type": "suspicious_urgency",
+    "description": "Psychological time pressure"
+  },
+  {
+    "text": "Annual plans save 15% compared to monthly billing at $12.99/mo.",
+    "label": 0,
+    "type": "neutral_discount",
+    "description": "Transparent annual vs monthly pricing"
+  },
+  {
+    "text": "College students and faculty receive a 10% educational discount upon student ID verification.",
+    "label": 0,
+    "type": "neutral_discount",
+    "description": "Legitimate educational discount"
+  },
+  {
+    "text": "Family bundle savings: Add up to 4 family members for an additional $4/month total.",
+    "label": 0,
+    "type": "neutral_discount",
+    "description": "Standard multi-seat pricing breakdown"
+  },
+  {
+    "text": "Early bird registration is open through November 30 for attendees who register in advance.",
+    "label": 0,
+    "type": "neutral_discount",
+    "description": "Factual event registration schedule"
+  },
+  {
+    "text": "Your subscription is paid through December 12, 2026. Next billing date: Jan 12, 2027.",
+    "label": 0,
+    "type": "genuine_notice",
+    "description": "Factual billing status"
+  },
+  {
+    "text": "Payment method on file: Visa ending in 4242. To update your billing card, visit Payment Settings.",
+    "label": 0,
+    "type": "genuine_notice",
+    "description": "Account payment details"
+  },
+  {
+    "text": "Want to make changes to your subscription? You can cancel at any time in Account Preferences.",
+    "label": 0,
+    "type": "genuine_notice",
+    "description": "Transparent cancellation policy notice"
+  },
+  {
+    "text": "Monthly receipt for Invoice #9842: $14.99 charged on Nov 1, 2026. Download PDF statement.",
+    "label": 0,
+    "type": "genuine_notice",
+    "description": "Standard billing receipt text"
+  },
+  {
+    "text": "According to academic research, confirmshaming is a dark pattern where the opt-out option uses manipulative phrasing like 'No thanks, I love paying more' to guilt users.",
+    "label": 0,
+    "type": "educational_discussion",
+    "description": "Scholarly definition of confirmshaming"
+  },
+  {
+    "text": "In this article, we examine the practice of forced continuity, defined as a design pattern where free trials automatically renew into paid plans without adequate notice.",
+    "label": 0,
+    "type": "educational_discussion",
+    "description": "Encyclopedic overview of deceptive renewals"
+  },
+  {
+    "text": "The FTC report highlighted deceptive design patterns, illustrating how countdown timers create artificial urgency when no real expiration exists.",
+    "label": 0,
+    "type": "educational_discussion",
+    "description": "Government regulatory report discussion"
+  },
+  {
+    "text": "Researchers define roach motel as an interface where subscribing is effortless but cancelling requires multiple obfuscated phone calls and retention obstacles.",
+    "label": 0,
+    "type": "educational_discussion",
+    "description": "Academic taxonomy of dark patterns"
+  },
+  {
+    "text": "To cancel your plan, click 'Manage Plan', select 'Cancel Subscription', and confirm your choice.",
+    "label": 0,
+    "type": "standard_cancellation",
+    "description": "Straightforward cancellation instructions"
+  },
+  {
+    "text": "Yes, cancel my subscription. We will send an email confirmation to user@example.com.",
+    "label": 0,
+    "type": "standard_cancellation",
+    "description": "Direct cancellation confirmation button"
+  },
+  {
+    "text": "Please provide feedback on why you are cancelling: Cost, Missing Features, Switched Providers, or Other.",
+    "label": 0,
+    "type": "standard_cancellation",
+    "description": "Neutral exit feedback questionnaire"
+  },
+  {
+    "text": "Your cancellation is scheduled for the end of the current billing cycle. You maintain full access until Dec 31.",
+    "label": 0,
+    "type": "standard_cancellation",
+    "description": "Factual end-of-term cancellation summary"
+  }
+]

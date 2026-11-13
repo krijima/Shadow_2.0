@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Cancel Subscription (Step 1)</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html"        data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html"      data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><a href="demo_control.html" class="demo-nav-pill">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <a href="index.html"        data-shadow-id="bc-home">Home</a>
+    <span class="sep">›</span>
+    <a href="subscription.html" data-shadow-id="bc-subscription">Subscription</a>
+    <span class="sep">›</span>
+    <span class="current">Cancel — Step 1 of 3</span>
+  </nav>
+
+  <div class="section" style="max-width:580px; margin:0 auto;">
+    <div class="card">
+      <h1 style="margin-bottom:.5rem;">We're sorry to see you go.</h1>
+      <p>Before you cancel, could you tell us why you're leaving? Your feedback helps us improve.</p>
+
+      <form id="cancel-step1-form">
+        <div class="checkbox-group" style="margin:1.5rem 0;">
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="too_expensive" data-shadow-id="chk-too-expensive"/>
+            It's too expensive
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="not_enough_content" data-shadow-id="chk-not-enough-content"/>
+            Not enough content I enjoy
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="switching_service" data-shadow-id="chk-switching-service"/>
+            Switching to another service
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="technical_issues" data-shadow-id="chk-technical-issues"/>
+            Technical issues / poor quality
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="temporary" data-shadow-id="chk-temporary"/>
+            Taking a temporary break
+          </label>
+          <label class="checkbox-label">
+            <input type="checkbox" name="reason" value="other" data-shadow-id="chk-other"/>
+            Other reason
+          </label>
+        </div>
+
+        <div class="btn-row">
+          <a href="cancel_step2.html" class="btn btn-danger" data-shadow-id="btn-continue-cancel">
+            Continue
+          </a>
+          <!-- confirm-shaming: button text changes based on scenario -->
+          <a href="subscription.html" class="btn btn-ghost" id="btn-keep" data-shadow-id="btn-keep-subscription">
+            No, keep my subscription
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- confirm-shaming shame text (hidden unless scenario active) -->
+    <p class="confirm-shame-text" id="shame-text" style="display:none; text-align:center; margin-top:.75rem;">
+      By continuing, you agree to forfeit your unlimited streaming benefits.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 StreamCove, Inc. &mdash; <em>Demo site for SHADOW research</em></p>
+  </div>
+</footer>
+
+<script>
+  fetch('/api/scenario')
+    .then(r => r.json())
+    .then(d => {
+      const scenario = d.scenario;
+      sessionStorage.setItem('scenario', scenario);
+
+      if (scenario === 'confirm_shaming') {
+        // Change the "keep" button to shame-language
+        const keepBtn = document.getElementById('btn-keep');
+        keepBtn.textContent = "No thanks, I love paying more than I need to";
+        keepBtn.classList.add('confirm-shame-text');
+        keepBtn.style.fontSize = '.8rem';
+        // Also show shame text
+        document.getElementById('shame-text').style.display = 'block';
+      }
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

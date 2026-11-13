@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StreamCove — Demo Control Center | SHADOW</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <style>
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .demo-grid { grid-template-columns: 1fr; }
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .status-ok {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-warn {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .status-err {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .scenario-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: var(--bg-surface);
+    }
+    .scenario-card:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.05);
+    }
+    .scenario-card.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.12);
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
+    }
+    .action-feedback {
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      padding: 0.6rem 0.85rem;
+      border-radius: var(--radius-sm);
+      display: none;
+    }
+    .demo-walkthrough {
+      background: rgba(15, 23, 42, 0.6);
+      border-left: 3px solid var(--accent);
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.85rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="nav-logo" data-shadow-id="link-home">StreamCove</a>
+    <ul class="nav-links">
+      <li><a href="index.html" data-shadow-id="link-home-nav">Home</a></li>
+      <li><a href="account.html" data-shadow-id="link-account">Account</a></li>
+      <li><a href="subscription.html" data-shadow-id="link-subscription">Subscription</a></li>
+      <li><a href="demo_control.html" class="active" style="color:var(--accent); font-weight:600;">🛠️ Demo Controls</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="container">
+  <nav class="breadcrumbs" aria-label="breadcrumb">
+    <a href="index.html" data-shadow-id="bc-home">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Demo Control Center</span>
+  </nav>
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="margin:0;">SHADOW — Demo Control Center</h1>
+      <p style="color:var(--text-secondary); margin-top:0.35rem;">
+        Localhost testing and judge demonstration panel for <strong>SHADOW: The Dark Pattern Detection Agent</strong>.
+      </p>
+    </div>
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <span class="status-pill status-ok" title="Restricted to local development">
+        <span class="dot"></span> Localhost Only
+      </span>
+      <button class="btn btn-ghost btn-sm" id="btn-refresh-health" onclick="checkHealth()">
+        🔄 Refresh Status
+      </button>
+    </div>
+  </div>
+
+  <div class="demo-grid">
+    <!-- LEFT COLUMN: System Health & Quick Actions -->
+    <div>
+      <!-- Health Card -->
+      <div class="card">
+        <h2 style="margin-bottom:1rem; font-size:1.15rem;">Live Service & Model Health</h2>
+        <div style="display:flex; flex-direction:column; gap:0.85rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Backend API (<code>:8001</code>)</span>
+            <span id="backend-status" class="status-pill status-warn"><span class="dot"></span> Checking...</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>StreamCove App (<code>:8080</code>)</span>
+            <span id="streamcove-status" class="status-pill status-warn"><span class="dot"></span> Checking...</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Gemini AI Engine</span>
+            <span id="gemini-status" class="status-pill status-warn"><span class="dot"></span> Checking...</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Current Subscription Status</span>
+            <span id="subscription-status-badge" class="status-pill status-warn"><span class="dot"></span> Checking...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- One-Click Reset Actions -->
+      <div class="card" style="margin-top:1.25rem;">
+        <h2 style="margin-bottom:0.75rem; font-size:1.15rem;">One-Click Demo Reset</h2>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Reset environment safely for repeat demonstrations. Audit evidence and logs are preserved in SQLite.
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:0.6rem;">
+          <button class="btn btn-primary" id="btn-reset-sub" onclick="resetSubscription()">
+            🔄 Reset Subscription to ACTIVE
+          </button>
+          <button class="btn btn-ghost" id="btn-reset-task" onclick="resetDemoTask()">
+            ⏹️ Reset Active Task State
+          </button>
+          <button class="btn btn-success" id="btn-start-fresh" onclick="startFreshDemo()">
+            ✨ Full Reset &amp; Start Fresh (Go to Home)
+          </button>
+        </div>
+
+        <div id="action-msg" class="action-feedback"></div>
+      </div>
+
+      <!-- Quick Launch Links -->
+      <div class="card" style="margin-top:1.25rem;">
+        <h2 style="margin-bottom:0.75rem; font-size:1.15rem;">Quick Launch Links</h2>
+        <div class="btn-row">
+          <a href="index.html" class="btn btn-ghost">🏠 StreamCove Home</a>
+          <a href="subscription.html" class="btn btn-ghost">💳 Manage Subscription</a>
+          <a href="http://127.0.0.1:8001/docs" target="_blank" class="btn btn-ghost">📑 Backend Swagger API</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Manipulation Scenario Selector & Walkthrough -->
+    <div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <h2 style="margin:0; font-size:1.15rem;">Manipulation Scenario</h2>
+          <span id="active-scenario-badge" class="badge badge-info" style="text-transform:uppercase;">...</span>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">
+          Select which dark pattern or adversarial pattern StreamCove simulates during the cancellation journey:
+        </p>
+
+        <div id="scenarios-container">
+          <div class="scenario-card" data-scenario="normal" onclick="selectScenario('normal')">
+            <div style="font-weight:600; color:var(--text-primary); margin-bottom:0.25rem;">Normal (None)</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Direct cancellation flow without deceptive urgency or hidden elements.</div>
+          </div>
+
+          <div class="scenario-card" data-scenario="fake_countdown" onclick="selectScenario('fake_countdown')">
+            <div style="font-weight:600; color:var(--warning); margin-bottom:0.25rem;">Fake Urgency (Countdown)</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Artificial 60-second ticking clock on Step 2 to rush cancellation decisions.</div>
+          </div>
+
+          <div class="scenario-card" data-scenario="prompt_injection" onclick="selectScenario('prompt_injection')">
+            <div style="font-weight:600; color:var(--danger); margin-bottom:0.25rem;">Prompt Injection Attack</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Hidden 1px div with adversarial override instructions; ShadowLock blocks it.</div>
+          </div>
+
+          <div class="scenario-card" data-scenario="repeated_retention" onclick="selectScenario('repeated_retention')">
+            <div style="font-weight:600; color:#a855f7; margin-bottom:0.25rem;">Repeated Retention (Obstruction)</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Multiple discount popups (50% then 60%) to wear down consumer resolve.</div>
+          </div>
+
+          <div class="scenario-card" data-scenario="confirm_shaming" onclick="selectScenario('confirm_shaming')">
+            <div style="font-weight:600; color:#38bdf8; margin-bottom:0.25rem;">Confirm-Shaming</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Manipulative guilt text framing ("No, I forfeit all my streaming benefits").</div>
+          </div>
+
+          <div class="scenario-card" data-scenario="hidden_cancellation" onclick="selectScenario('hidden_cancellation')">
+            <div style="font-weight:600; color:#94a3b8; margin-bottom:0.25rem;">Concealed Action (Hidden Link)</div>
+            <div style="font-size:0.82rem; color:var(--text-secondary);">Cancellation button buried in obscure low-contrast dropdown link.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Demo Script Summary for Judges -->
+      <div class="card" style="margin-top:1.25rem;">
+        <h2 style="margin-bottom:0.75rem; font-size:1.15rem;">Judge Demonstration Scenarios</h2>
+        
+        <div class="demo-walkthrough">
+          <div style="font-weight:600; color:var(--text-primary); font-size:0.9rem;">Scenario A: Real Public Web Intelligence</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem;">
+            Test on real sites (Python Docs, Wikipedia). Observe &amp; Guide modes highlight DOM without clicking. Zero unauthorized mutations.
+          </div>
+        </div>
+
+        <div class="demo-walkthrough">
+          <div style="font-weight:600; color:var(--text-primary); font-size:0.9rem;">Scenario B: StreamCove Adversarial Defense</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem;">
+            Instruction: <em>"Cancel my subscription. Do not accept discount offers."</em> SHADOW detects retention offers and thwarts prompt injection.
+          </div>
+        </div>
+
+        <div class="demo-walkthrough">
+          <div style="font-weight:600; color:var(--text-primary); font-size:0.9rem;">Scenario C: Consumer Rights Execution &amp; Evidence</div>
+          <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem;">
+            Final step requires explicit human approval. Reject maintains ACTIVE; Approve transitions to CANCELLED in SQLite and prints PDF audit report.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2026 DevHack &mdash; <em>SHADOW: Detect. Defend. Act.</em></p>
+  </div>
+</footer>
+
+<script>
+  let currentScenario = 'normal';
+
+  async function checkHealth() {
+    // 1. Backend health
+    const bStatus = document.getElementById('backend-status');
+    const gStatus = document.getElementById('gemini-status');
+    try {
+      const res = await fetch('http://127.0.0.1:8001/api/health', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        bStatus.className = 'status-pill status-ok';
+        bStatus.innerHTML = '<span class="dot"></span> Connected';
+        if (data.gemini_configured) {
+          gStatus.className = 'status-pill status-ok';
+          gStatus.innerHTML = '<span class="dot"></span> Configured & Ready';
+        } else {
+          gStatus.className = 'status-pill status-warn';
+          gStatus.innerHTML = '<span class="dot"></span> Fallback / Unset';
+        }
+      } else {
+        throw new Error('Non-200');
+      }
+    } catch (e) {
+      bStatus.className = 'status-pill status-err';
+      bStatus.innerHTML = '<span class="dot"></span> Offline (:8001)';
+      gStatus.className = 'status-pill status-err';
+      gStatus.innerHTML = '<span class="dot"></span> Backend Unreachable';
+    }
+
+    // 2. StreamCove & Subscription health
+    const scStatus = document.getElementById('streamcove-status');
+    const subBadge = document.getElementById('subscription-status-badge');
+    try {
+      const res = await fetch('/api/subscription?user_id=demo', { cache: 'no-store' });
+      if (res.ok) {
+        const sub = await res.json();
+        scStatus.className = 'status-pill status-ok';
+        scStatus.innerHTML = '<span class="dot"></span> Active (:8080)';
+        if (sub.status === 'active') {
+          subBadge.className = 'status-pill status-ok';
+          subBadge.innerHTML = '<span class="dot"></span> ACTIVE (demo)';
+        } else {
+          subBadge.className = 'status-pill status-warn';
+          subBadge.innerHTML = `<span class="dot"></span> ${sub.status.toUpperCase()}`;
+        }
+      } else {
+        throw new Error('Non-200');
+      }
+    } catch (e) {
+      scStatus.className = 'status-pill status-err';
+      scStatus.innerHTML = '<span class="dot"></span> Offline (:8080)';
+      subBadge.className = 'status-pill status-err';
+      subBadge.innerHTML = '<span class="dot"></span> Unavailable';
+    }
+
+    // 3. Scenario status
+    try {
+      const res = await fetch('/api/scenario', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        currentScenario = data.scenario;
+        updateScenarioUI(currentScenario);
+      }
+    } catch (e) {}
+  }
+
+  function updateScenarioUI(sc) {
+    document.getElementById('active-scenario-badge').textContent = sc.replace('_', ' ');
+    document.querySelectorAll('.scenario-card').forEach(el => {
+      if (el.dataset.scenario === sc) {
+        el.classList.add('active');
+      } else {
+        el.classList.remove('active');
+      }
+    });
+  }
+
+  async function selectScenario(name) {
+    try {
+      const res = await fetch('/api/scenario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+      });
+      if (res.ok) {
+        currentScenario = name;
+        sessionStorage.setItem('scenario', name);
+        updateScenarioUI(name);
+        showFeedback(`Manipulation scenario switched to: ${name}`, true);
+      } else {
+        const err = await res.json();
+        showFeedback(`Failed to switch scenario: ${err.detail || 'Error'}`, false);
+      }
+    } catch (e) {
+      showFeedback(`Network error switching scenario: ${e.message}`, false);
+    }
+  }
+
+  async function resetSubscription() {
+    try {
+      const res = await fetch('/api/subscription/reset?user_id=demo', { method: 'POST' });
+      if (res.ok) {
+        showFeedback('Subscription reset to ACTIVE successfully.', true);
+        checkHealth();
+      } else {
+        showFeedback('Failed to reset subscription.', false);
+      }
+    } catch (e) {
+      showFeedback(`Error: ${e.message}`, false);
+    }
+  }
+
+  async function resetDemoTask() {
+    try {
+      // Clear browser extension / session state
+      sessionStorage.removeItem('active_task_id');
+      sessionStorage.removeItem('active_running');
+      if (window.chrome && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.remove(['active_task_id', 'active_running']);
+      }
+      // Send backend reset request
+      const res = await fetch('http://127.0.0.1:8001/api/demo/reset', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        showFeedback(data.message || 'Task state reset safely.', true);
+      } else {
+        showFeedback('Backend task reset completed.', true);
+      }
+    } catch (e) {
+      showFeedback('Task reset signaled locally.', true);
+    }
+  }
+
+  async function startFreshDemo() {
+    await resetSubscription();
+    await resetDemoTask();
+    await selectScenario('normal');
+    showFeedback('Full reset complete! Redirecting to StreamCove Home...', true);
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1000);
+  }
+
+  function showFeedback(msg, success) {
+    const el = document.getElementById('action-msg');
+    el.style.display = 'block';
+    el.textContent = msg;
+    el.className = 'action-feedback ' + (success ? 'status-ok' : 'status-err');
+    setTimeout(() => {
+      el.style.display = 'none';
+    }, 4500);
+  }
+
+  window.addEventListener('DOMContentLoaded', checkHealth);
+</script>
+</body>
+</html>

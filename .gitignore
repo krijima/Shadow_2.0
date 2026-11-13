@@ -1,0 +1,88 @@
+# ==============================================================================
+# SHADOW — Git Ignore Rules
+# ==============================================================================
+
+# --- Secrets & Environment Configurations ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+credentials.json
+token.json
+
+# --- Python Bytecode & Runtime Caches ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# --- Python Virtual Environments ---
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Testing & Quality Assurance Caches ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# --- IDE, Editor & OS Artifacts ---
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.swp
+*.swo
+*~
+
+# --- Playwright & Ephemeral Browser Testing Profiles ---
+test_user_data/
+test_user_data_*/
+browser_sandbox/
+playwright-report/
+test-results/
+
+# --- Database Journals & Lock Files ---
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+
+# --- Logs, Dumps & Temp Files ---
+*.log
+logs/
+temp/
+tmp/
+*.tmp
+*.bak
+
+# --- Preserve Essential Project Artifacts (Explicit Whitelist Overrides) ---
+!artifacts/screenshots/*.png
+!backend/models/dark_pattern_classifier.joblib
+!training/data/ec_darkpattern.tsv
+!training/data/independent_held_out_evaluation.json
+!training/data/benchmark_evaluation_report.json
+!training/data/LICENSE.txt

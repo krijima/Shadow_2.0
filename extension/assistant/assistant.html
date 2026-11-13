@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHADOW Assistant</title>
+  <link rel="stylesheet" href="assistant.css" />
+</head>
+<body>
+  <!-- Main container -->
+  <div class="assistant-container" id="app" role="region" aria-label="SHADOW AI Assistant">
+
+    <!-- Header (Draggable handle area) -->
+    <header class="header" id="dragHeader">
+      <div class="header-left">
+        <div class="brand-badge">
+          <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+          <span class="logo">SHADOW</span>
+        </div>
+        <span class="tagline">DETECT · DEFEND · ACT</span>
+      </div>
+
+      <div class="header-right">
+        <!-- Live AI status pill -->
+        <div class="ai-status-pill" id="headerStatusPill" title="Agent status">
+          <span class="status-pulse" id="headerStatusDot"></span>
+          <span class="status-text" id="headerStatusText">IDLE</span>
+        </div>
+        <button class="btn-icon" id="minimizeBtn" title="Minimize / Expand Assistant" aria-label="Minimize or Expand">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content (collapses when minimized) -->
+    <main class="content" id="content">
+
+      <!-- Site & Operating Mode Selector (Phases 5 & 7) -->
+      <div class="site-mode-bar" id="siteModeBar">
+        <div class="site-info-pill" id="siteInfoPill" title="Target Page">
+          <span class="site-icon">🌐</span>
+          <span class="site-name" id="siteNameDisplay">localhost:8080</span>
+        </div>
+        <div class="mode-pill-group" id="modePillGroup" role="radiogroup" aria-label="Operating Mode">
+          <button type="button" class="mode-pill active" id="modeBtnObserve" data-mode="observe" title="Open reversible steps; stop for review on the website">Observe</button>
+          <button type="button" class="mode-pill" id="modeBtnGuide" data-mode="guide" title="Follow the highlighted control or its nearby guide box">Guide</button>
+          <button type="button" class="mode-pill" id="modeBtnDemo" data-mode="demo" title="Autonomous navigation for StreamCove demo environment">Demo</button>
+        </div>
+      </div>
+
+      <!-- Section: Task Input (Idle State) -->
+      <section class="view-panel" id="taskInputSection" aria-label="Start Task">
+        <div class="intent-guard-banner">
+          <div class="guard-icon">🛡️</div>
+          <div class="guard-text">
+            <strong>ShadowLock Active</strong>
+            <span>Immutable intent enforcement & dark pattern resistance.</span>
+          </div>
+        </div>
+
+        <div class="card prompt-card">
+          <label for="instructionInput" class="card-label">YOUR OBJECTIVE</label>
+          <textarea
+            id="instructionInput"
+            class="task-input"
+            placeholder="e.g. Cancel my subscription. Do not accept discounts, upgrades, or extra charges."
+            rows="3"
+            aria-label="User instruction"
+          ></textarea>
+          <div class="input-quick-tags">
+            <button type="button" class="tag-chip" id="quickTagCancel">Cancel Subscription</button>
+            <button type="button" class="tag-chip" id="quickTagCookies">Reject Optional Cookies</button>
+            <button type="button" class="tag-chip" id="quickTagAccount">Find Account Settings</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block glow-on-hover" id="startBtn">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span>Start</span>
+        </button>
+      </section>
+
+      <!-- Section: Active Task (Running / Navigating State) -->
+      <section class="view-panel hidden" id="activeTaskSection" aria-label="Active Task Progress">
+        
+        <!-- Objective Card -->
+        <div class="card goal-card">
+          <div class="card-header-compact">
+            <span class="card-label">IMMUTABLE OBJECTIVE</span>
+            <span class="badge-lock" title="ShadowLock protects this instruction from webpage manipulation">🔒 LOCKED</span>
+          </div>
+          <p class="goal-text" id="goalText">—</p>
+        </div>
+
+        <!-- Live Activity Timeline Card -->
+        <div class="card timeline-card">
+          <div class="card-header-compact">
+            <span class="card-label">AGENT ACTIVITY TIMELINE</span>
+            <span class="step-counter" id="stepCounter">0 STEPS</span>
+          </div>
+
+          <div class="timeline-container" id="timelineList" role="log" aria-live="polite">
+            <div class="timeline-empty">Initializing AI agent reasoning…</div>
+          </div>
+        </div>
+
+        <!-- Dark Pattern Alerts Section -->
+        <div class="card detections-card" id="detectionsCard">
+          <div class="card-header-compact">
+            <span class="card-label alert-label">
+              <span class="alert-icon-mini">⚠</span> DETECTED DARK PATTERNS
+            </span>
+            <span class="count-badge" id="detectionCount">0</span>
+          </div>
+          <div class="detections-container" id="detectionsContainer">
+            <p class="no-detections" id="noDetectionsText">No deceptive manipulation detected on current view.</p>
+            <div class="detections-list hidden" id="detectionsList"></div>
+          </div>
+        </div>
+
+        <!-- Controls Toolbar -->
+        <div class="controls-toolbar">
+          <button class="btn btn-secondary" id="pauseBtn" aria-label="Pause or Resume Agent">
+            <span class="btn-icon-text" id="pauseBtnIcon">⏸</span>
+            <span id="pauseBtnText">Pause</span>
+          </button>
+          <button class="btn btn-danger" id="stopBtn" aria-label="Stop Agent">
+            <span class="btn-icon-text">⏹</span>
+            <span>Abort</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Section: Completion Summary -->
+      <section class="view-panel hidden" id="completionSection" aria-label="Task Completed">
+        <div class="result-banner success">
+          <div class="result-icon-ring">✓</div>
+          <h2 class="result-title">Objective Achieved</h2>
+          <p class="result-desc" id="completionMsg">Subscription cancellation was safely executed and confirmed.</p>
+        </div>
+
+        <div class="card verified-card">
+          <div class="card-header-compact">
+            <span class="card-label">SYSTEM VERIFICATION</span>
+            <span class="badge-verified">DATABASE CONFIRMED</span>
+          </div>
+          <ul class="verification-checklist">
+            <li><span>✓ User intent preserved without compromise</span></li>
+            <li><span>✓ Deceptive retention offers resisted</span></li>
+            <li><span>✓ Explicit approval received before irreversible action</span></li>
+            <li><span>✓ Backend subscription state verified as CANCELLED</span></li>
+          </ul>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="evidenceBtn">
+          <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>View Audit Evidence Report</span>
+        </button>
+
+        <button class="btn btn-ghost btn-block" id="newTaskBtn" style="margin-top: 8px;">
+          <span>+ Start Another Task</span>
+        </button>
+      </section>
+
+      <!-- Section: Error / Failure -->
+      <section class="view-panel hidden" id="errorSection" aria-label="Task Error">
+        <div class="result-banner error">
+          <div class="result-icon-ring error">✗</div>
+          <h2 class="result-title">Action Halted</h2>
+          <p class="result-desc" id="errorMsg">An unexpected error occurred during page navigation.</p>
+        </div>
+
+        <button class="btn btn-secondary btn-block" id="retryBtn" style="margin-top: 16px;">
+          <span>+ Start New Task</span>
+        </button>
+      </section>
+
+    </main>
+
+    <!-- Modal: Consequential Action Approval (ShadowLock) -->
+    <div class="modal-backdrop hidden" id="approvalModal" role="dialog" aria-modal="true" aria-labelledby="approvalTitle">
+      <div class="modal-card">
+        <div class="modal-banner-warning">
+          <div class="modal-warning-badge">⚠ ACTION APPROVAL REQUIRED</div>
+        </div>
+        <div class="modal-content">
+          <h3 class="modal-title" id="approvalTitle">Confirm Subscription Cancellation</h3>
+          <p class="modal-notice">
+            ShadowLock has intercepted an irreversible action. This will permanently change your subscription status in the database.
+          </p>
+
+          <div class="approval-action-box">
+            <div class="box-label">PENDING ACTION</div>
+            <div class="action-desc-highlight" id="approvalActionDesc">Click "Yes, cancel my subscription"</div>
+            <div class="box-label" style="margin-top: 8px;">AGENT REASONING</div>
+            <div class="action-reason-text" id="approvalReason">Executing final confirmation as authorized by user.</div>
+          </div>
+        </div>
+
+        <div class="modal-actions-row">
+          <button class="btn btn-ghost modal-btn" id="rejectBtn">
+            <span>Reject Action</span>
+          </button>
+          <button class="btn btn-danger modal-btn" id="approveBtn">
+            <span>Approve &amp; Execute</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Clarification / Ask User -->
+    <div class="modal-backdrop hidden" id="askUserModal" role="dialog" aria-modal="true" aria-labelledby="clarificationTitle">
+      <div class="modal-card">
+        <div class="modal-banner-info">
+          <div class="modal-info-badge">? CLARIFICATION REQUIRED</div>
+        </div>
+        <div class="modal-content">
+          <h3 class="modal-title" id="clarificationTitle">Question from Agent</h3>
+          <p class="modal-question" id="askQuestion">—</p>
+          <input
+            type="text"
+            class="answer-input"
+            id="askAnswer"
+            placeholder="Type your response to guide the agent…"
+            aria-label="Agent clarification response"
+          />
+        </div>
+        <div class="modal-actions-row">
+          <button class="btn btn-primary modal-btn" id="submitAnswerBtn">
+            <span>Send Guidance</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="assistant.js"></script>
+</body>
+</html>

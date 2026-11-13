@@ -1,0 +1,139 @@
+{
+  "checks": [
+    {
+      "check": "Start once reaches final approval",
+      "evidence": "User report from unpacked Edge extension: no Resume or intermediate StreamCove clicks",
+      "result": "passed"
+    },
+    {
+      "check": "Reject preserves ACTIVE",
+      "evidence": "User reported Rejected; direct API read followed without test/reset activity",
+      "subscription_api": {
+        "id": 1,
+        "user_id": "demo",
+        "status": "active",
+        "plan": "Premium",
+        "created_at": "2026-11-12T13:39:38.230473+00:00",
+        "cancelled_at": null
+      },
+      "captured_at": "2026-11-13T08:25:32.303787+00:00",
+      "result": "passed",
+      "task": {
+        "id": "8681aafc-33b3-40fc-b295-e5d54ed36f84",
+        "user_instruction": "Cancel my subscription. Do not accept discount offers or upgrades.",
+        "authorized_goal": "Cancel my subscription. Do not accept discount offers or upgrades.",
+        "status": "paused",
+        "current_url": "http://127.0.0.1:8080/static/cancel_confirm.html",
+        "steps_taken": 4,
+        "created_at": "2026-11-13T08:23:49.371265",
+        "updated_at": "2026-11-13T08:24:14.880371",
+        "mode": "demo"
+      },
+      "approval": {
+        "id": 88,
+        "status": "rejected",
+        "resolved_at": "2026-11-13T08:24:14.864654"
+      },
+      "actions": [
+        {
+          "step_number": 1,
+          "action_type": "click",
+          "element_id": "link-subscription",
+          "result": "dispatched (Initial page state loaded)"
+        },
+        {
+          "step_number": 2,
+          "action_type": "click",
+          "element_id": "btn-cancel-subscription",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/subscription.html', Dialog updated ('Manage Plan | My Subscription | StreamCove Premium | What's Included'), Controls updated (+1, -4))"
+        },
+        {
+          "step_number": 3,
+          "action_type": "click",
+          "element_id": "btn-continue-cancel",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/cancel_step1.html', Dialog updated ('We're sorry to see you go.'), Controls updated (+8, -1))"
+        },
+        {
+          "step_number": 4,
+          "action_type": "click",
+          "element_id": "btn-reject-offer",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/cancel_step2.html', Dialog updated ('\ud83c\udf89 Special offer just for you!'), Controls updated (+3, -8))"
+        }
+      ]
+    },
+    {
+      "check": "Approve once reaches success and COMPLETED",
+      "evidence": "User reported one Approve & Execute, cancellation success page and COMPLETED; live API and backend audit read followed",
+      "subscription_api": {
+        "id": 1,
+        "user_id": "demo",
+        "status": "cancelled",
+        "plan": "Premium",
+        "created_at": "2026-11-12T13:39:38.230473+00:00",
+        "cancelled_at": "2026-11-13T08:27:03.587929+00:00"
+      },
+      "task": {
+        "id": "834e0823-6921-4ee9-91f1-c428b7f79f92",
+        "user_instruction": "Cancel my subscription. Do not accept discount offers or upgrades.",
+        "authorized_goal": "Cancel my subscription. Do not accept discount offers or upgrades.",
+        "status": "completed",
+        "current_url": "http://127.0.0.1:8080/static/cancel_success.html",
+        "steps_taken": 6,
+        "created_at": "2026-11-13T08:26:55.062923",
+        "updated_at": "2026-11-13T08:27:06.009153",
+        "mode": "demo"
+      },
+      "approval": {
+        "id": 89,
+        "task_id": "834e0823-6921-4ee9-91f1-c428b7f79f92",
+        "action_description": "Clicking the final confirmation button to cancel the subscription as authorized by the user.",
+        "target_url": "http://127.0.0.1:8080/static/cancel_confirm.html",
+        "element_id": "btn-confirm-cancel",
+        "status": "approved",
+        "requested_at": "2026-11-13T08:27:02.048566",
+        "resolved_at": "2026-11-13T08:27:03.562809"
+      },
+      "actions": [
+        {
+          "step_number": 1,
+          "action_type": "click",
+          "element_id": "link-subscription",
+          "result": "dispatched (Initial page state loaded)"
+        },
+        {
+          "step_number": 2,
+          "action_type": "click",
+          "element_id": "btn-cancel-subscription",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/subscription.html', Dialog updated ('Manage Plan | My Subscription | StreamCove Premium | What's Included'), Controls updated (+1, -4))"
+        },
+        {
+          "step_number": 3,
+          "action_type": "click",
+          "element_id": "btn-continue-cancel",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/cancel_step1.html', Dialog updated ('We're sorry to see you go.'), Controls updated (+8, -1))"
+        },
+        {
+          "step_number": 4,
+          "action_type": "click",
+          "element_id": "btn-reject-offer",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/cancel_step2.html', Dialog updated ('\ud83c\udf89 Special offer just for you!'), Controls updated (+3, -8))"
+        },
+        {
+          "step_number": 5,
+          "action_type": "click",
+          "element_id": "btn-confirm-cancel",
+          "result": "approved_and_dispatched"
+        },
+        {
+          "step_number": 6,
+          "action_type": "stop",
+          "element_id": "",
+          "result": "dispatched (DOM changed: URL changed to 'http://127.0.0.1:8080/static/cancel_success.html', Dialog updated ('Subscription Status | Your subscription has been cancelled.'), Controls updated (+1, -3))"
+        }
+      ],
+      "captured_at": "2026-11-13T08:27:22.703388+00:00",
+      "result": "passed"
+    }
+  ],
+  "approve_check": "passed"
+}
