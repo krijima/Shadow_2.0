@@ -86,7 +86,7 @@
   }
 
   function renderTerminalAudit(message, fallbackStatus) {
-    const auditTaskId = message.task_id || taskId || "";
+    const auditTaskId = message.task_id || "";
     const mode = String(message.mode || currentMode || "observe").toUpperCase();
     const status = String(message.status || fallbackStatus || "completed").toUpperCase();
     const detected = Array.isArray(message.detections) ? message.detections.length : detectionCount;
@@ -861,6 +861,15 @@
         if (msg.detections) handleDetections(msg.detections);
         renderTerminalAudit(msg, "failed");
         showError(msg.error || "An unknown navigation error occurred.");
+        break;
+      }
+
+      case "TASK_CANCELLED": {
+        isRunning = false;
+        setAgentStatus("paused", "CANCELLED");
+        if (msg.detections) handleDetections(msg.detections);
+        renderTerminalAudit(msg, "cancelled");
+        showError(msg.reason || "Task was cancelled before it could continue.");
         break;
       }
 

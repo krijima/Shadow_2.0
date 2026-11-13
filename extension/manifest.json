@@ -23,6 +23,7 @@
         "http://127.0.0.1/*"
       ],
       "js": [
+        "terminal_audit.js",
         "navigation.js",
         "content.js"
       ],

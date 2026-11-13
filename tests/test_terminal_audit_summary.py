@@ -1,6 +1,7 @@
 """Browser-level coverage for the assistant's end-of-task audit summary."""
 
 from pathlib import Path
+import subprocess
 
 import pytest
 from playwright.sync_api import sync_playwright
@@ -11,11 +12,40 @@ ASSISTANT_URL = (ROOT / "extension" / "assistant" / "assistant.html").as_uri()
 
 
 @pytest.mark.parametrize(
+    ("event_type", "expected_status"),
+    [
+        ("TASK_COMPLETE", "completed"),
+        ("TASK_HALTED", "halted"),
+        ("TASK_FAILED", "failed"),
+        ("TASK_CANCELLED", "cancelled"),
+    ],
+)
+def test_content_terminal_payload_builder_preserves_audit_metadata(event_type, expected_status):
+    """Deleting task, mode, or status metadata from terminal messages breaks report routing."""
+    program = f"""
+      const fs = require('fs');
+      const vm = require('vm');
+      const sandbox = {{}};
+      vm.runInNewContext(fs.readFileSync('extension/terminal_audit.js', 'utf8'), sandbox);
+      const message = sandbox.ShadowTerminalAudit.createTerminalMessage(
+        '{event_type}', 'audit-task-42', 'guide', {{ detections: [] }}
+      );
+      if (message.source !== 'SHADOW_CONTENT' || message.task_id !== 'audit-task-42' ||
+          message.mode !== 'guide' || message.status !== '{expected_status}' || !Array.isArray(message.detections)) {{
+        process.exit(1);
+      }}
+    """
+    result = subprocess.run(["node", "-e", program], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize(
     ("mode", "event_type", "status"),
     [
         ("observe", "TASK_COMPLETE", "completed"),
         ("guide", "TASK_HALTED", "halted"),
         ("demo", "TASK_FAILED", "failed"),
+        ("demo", "TASK_CANCELLED", "cancelled"),
     ],
 )
 def test_terminal_outcomes_render_audit_summary_for_every_mode(mode, event_type, status):
@@ -75,9 +105,13 @@ def test_terminal_audit_disables_report_action_without_a_task_id():
         )
         page.goto(ASSISTANT_URL)
         page.evaluate(
-            """() => window.dispatchEvent(new MessageEvent("message", { data: {
+            """() => {
+                const send = message => window.dispatchEvent(new MessageEvent("message", { data: message }));
+                send({ source: "SHADOW_CONTENT", type: "TASK_CREATED", task_id: "previous-task", mode: "observe" });
+                send({
                 source: "SHADOW_CONTENT", type: "TASK_FAILED", mode: "observe", status: "failed", error: "No task id"
-            }}))"""
+                });
+            }"""
         )
 
         assert page.locator(".terminal-audit-card:visible").is_visible()
