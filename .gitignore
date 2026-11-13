@@ -86,3 +86,14 @@ tmp/
 !training/data/independent_held_out_evaluation.json
 !training/data/benchmark_evaluation_report.json
 !training/data/LICENSE.txt
+
+# Local runtime data and archived demo materials
+/backend/shadow.db
+/streamcove/streamcove.db
+/artifacts/screenshots/
+/artifacts/demo-recovery/
+/artifacts/observe-guide/
+/docs/superpowers/
+/scripts/capture_phase5_evidence.py
+/scripts/capture_phase6_evidence.py
+/scripts/capture_real_web_guidance_evidence.py
