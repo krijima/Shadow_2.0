@@ -16,6 +16,7 @@
   let shadowIndex = 0;
   let assistantFrame = null;
   let panelDrag = null;
+  let expandedPanelBounds = null;
   let currentMode = "observe";
   let ownerTabId = null;
   let runtimeInvalidated = false;
@@ -83,8 +84,8 @@
         pointer-events: none !important;
         user-select: none !important;
         z-index: 999990 !important;
-        background: #0f1322 !important;
-        color: #fbbf24 !important;
+        background: #fffbeb !important;
+        color: #a65d07 !important;
         border: 1px solid rgba(245, 158, 11, 0.7) !important;
         padding: 3px 8px !important;
         border-radius: 4px !important;
@@ -92,7 +93,7 @@
         font-size: 11px !important;
         font-weight: 700 !important;
         letter-spacing: 0.3px !important;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6) !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14) !important;
         display: inline-flex !important;
         align-items: center !important;
         gap: 5px !important;
@@ -101,7 +102,7 @@
         transition: opacity 0.2s ease !important;
       }
       .shadow-dp-badge.critical {
-        color: #f87171 !important;
+        color: #be123c !important;
         border-color: rgba(239, 68, 68, 0.7) !important;
       }
       .shadow-dp-focus-pulse {
@@ -119,8 +120,8 @@
         pointer-events: none !important;
         user-select: none !important;
         z-index: 999990 !important;
-        background: #0f1322 !important;
-        color: #c4b5fd !important;
+        background: #ffffff !important;
+        color: #5935cd !important;
         border: 1px solid rgba(139, 92, 246, 0.8) !important;
         padding: 3px 8px !important;
         border-radius: 4px !important;
@@ -445,7 +446,7 @@
     ];
     const dialogs = [...document.querySelectorAll('dialog[open], [role="dialog"], [aria-modal="true"]')].filter(isVisible);
     const observationRoot = dialogs[dialogs.length - 1] || document;
-    const pocketControls = currentMode === 'observe' ? (globalThis.ShadowPocketFM?.controls() || []) : [];
+    const pocketControls = ['observe', 'guide'].includes(currentMode) ? (globalThis.ShadowPocketFM?.controls() || []) : [];
     const pocketByNode = new Map(pocketControls.map(control => [control.node, control]));
     const allElements = [...new Set([...pocketByNode.keys(), ...observationRoot.querySelectorAll(selectors.join(","))])];
 
@@ -539,7 +540,7 @@
       },
       elements,
       elements_count: elements.length,
-      page_text: ((currentMode === 'observe' ? (globalThis.ShadowPocketFM?.contextText() || '') + '\n' : '') +
+      page_text: ((['observe', 'guide'].includes(currentMode) ? (globalThis.ShadowPocketFM?.contextText() || '') + '\n' : '') +
         ((observationRoot === document ? document.body : observationRoot).innerText || "")).trim().substring(0, 3000),
     };
   }
@@ -1114,7 +1115,25 @@
       }
 
       case "FOCUS_ASSISTANT": {
-        // Already visible — nothing to do
+        postToAssistant({source: 'SHADOW_CONTENT', type: 'EXPAND_ASSISTANT'});
+        break;
+      }
+
+      case 'SET_PANEL_SIZE': {
+        if (!assistantFrame) break;
+        panelDrag = null;
+        const rect = assistantFrame.getBoundingClientRect();
+        if (msg.minimized) {
+          if (!expandedPanelBounds) expandedPanelBounds = {left: rect.left, top: rect.top, width: rect.width, height: rect.height};
+          Object.assign(assistantFrame.style, {width: '64px', height: '64px', borderRadius: '50%', boxShadow: 'none', transition: 'none'});
+          positionAssistant(rect.right - 64, rect.bottom - 64);
+        } else {
+          const bounds = expandedPanelBounds || {left: rect.left, top: rect.top, width: 420, height: 560};
+          Object.assign(assistantFrame.style, {width: `${bounds.width}px`, height: `${bounds.height}px`, borderRadius: '14px',
+            boxShadow: '0 12px 36px rgba(15,23,42,0.16)', transition: 'none'});
+          positionAssistant(bounds.left, bounds.top);
+          expandedPanelBounds = null;
+        }
         break;
       }
 
@@ -1321,6 +1340,7 @@
         // Show/focus the iframe
         if (assistantFrame) {
           assistantFrame.style.display = "block";
+          postToAssistant({source: 'SHADOW_CONTENT', type: 'EXPAND_ASSISTANT'});
         }
         sendResponse({ ok: true });
         return false;

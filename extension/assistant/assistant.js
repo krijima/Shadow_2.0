@@ -19,6 +19,7 @@
   const dragHeader           = document.getElementById("dragHeader");
   const contentArea          = document.getElementById("content");
   const minimizeBtn          = document.getElementById("minimizeBtn");
+  const launcherBtn          = document.getElementById('launcherBtn');
 
   const headerStatusPill     = document.getElementById("headerStatusPill");
   const headerStatusText     = document.getElementById("headerStatusText");
@@ -458,18 +459,15 @@
   });
 
   // Minimize / Expand
-  minimizeBtn.addEventListener("click", () => {
-    isMinimized = !isMinimized;
-    if (isMinimized) {
-      appContainer.classList.add("minimized");
-      minimizeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-      postToParent({ source: "SHADOW_ASSISTANT", type: "SET_HEIGHT", height: 52 });
-    } else {
-      appContainer.classList.remove("minimized");
-      minimizeBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-      postToParent({ source: "SHADOW_ASSISTANT", type: "SET_HEIGHT", height: 560 });
-    }
-  });
+  function setMinimized(minimized) {
+    isMinimized = minimized;
+    appContainer.classList.toggle('hidden', minimized);
+    launcherBtn.classList.toggle('hidden', !minimized);
+    postToParent({source: 'SHADOW_ASSISTANT', type: 'SET_PANEL_SIZE', minimized});
+    if (!minimized) minimizeBtn.focus();
+  }
+  minimizeBtn.addEventListener('click', () => setMinimized(true));
+  launcherBtn.addEventListener('click', () => setMinimized(false));
 
   // Approve Consequential Action
   approveBtn.addEventListener("click", () => {
@@ -568,6 +566,7 @@
     if (!msg || msg.source !== "SHADOW_CONTENT") return;
 
     switch (msg.type) {
+      case 'EXPAND_ASSISTANT': setMinimized(false); break;
 
       case "HOST_CONTEXT": {
         isStreamCoveHost = Boolean(msg.is_streamcove);
@@ -756,6 +755,7 @@
       }
 
       case "APPROVAL_REQUIRED": {
+        if (isMinimized) setMinimized(false);
         currentApprovalId = msg.approval_id;
         approvalCount++;
         const isGuideMode = msg.mode === "guide";

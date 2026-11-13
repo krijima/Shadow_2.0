@@ -41,6 +41,9 @@ def loaded_extension(tmp_path, request):
                 path=str(ROOT / "extension" / route.request.url.split("/__shadow__/")[1])))
             bridge = """(() => {
               const listeners = [];
+              window.shadowTestPopupMessage = msg => new Promise(resolve => {
+                listeners.slice(1).forEach(listener => listener(msg, {}, resolve));
+              });
               window.chrome = { runtime: {
                 id: 'test-bridge', getURL: path => '/__shadow__/' + path,
                 onMessage: { addListener: fn => listeners.push(fn) },

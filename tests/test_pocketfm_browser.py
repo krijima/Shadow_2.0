@@ -66,3 +66,36 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
     else:
         page.wait_for_timeout(1200)
         assert page.evaluate('Number(localStorage.cancelClicks||0)') == 0
+
+
+def test_pocketfm_guide_waits_for_each_manual_website_click(provider_site):
+    page, worker, events = provider_site
+    body = r'''<html><head><meta charset="utf-8"></head><body><h1>Pocket FM</h1>
+      <button aria-label="Profile" onclick="step('manage')">Profile</button><div id="view"></div>
+      <script>
+      const view = document.querySelector('#view');
+      function step(name){localStorage[name]=Number(localStorage[name]||0)+1;
+        if(name==='manage') view.innerHTML='<button onclick="step(\'plan\')">Manage Subscriptions</button>';
+        if(name==='plan') view.innerHTML='<h2>Active subscriptions</h2><button onclick="step(\'details\')">60 mins daily</button>';
+        if(name==='details') view.innerHTML='<h2>Current plan details</h2><button onclick="step(\'cancel\')">Cancel Subscription</button>';
+      }
+      </script></body></html>'''
+    def serve(route):
+        if '/__shadow__/' in route.request.url:
+            route.fallback()
+        else:
+            route.fulfill(content_type='text/html; charset=utf-8', body=body)
+    page.context.route('https://pocketfm.com/**', serve)
+    page.goto('https://pocketfm.com/')
+    page.locator('#shadow-assistant-frame').wait_for()
+    start(page, 'guide', 'Cancel my Pocket FM subscription')
+    for label, counter in [('Profile', 'manage'), ('Manage Subscriptions', 'plan'),
+                           ('60 mins daily', 'details'), ('Cancel Subscription', 'cancel')]:
+        wait_for(page, lambda: page.locator('.shadow-guidance-target').count() == 1 and
+            page.locator('.shadow-guidance-target').inner_text() == label, events, timeout=25)
+        page.wait_for_timeout(700)
+        assert page.evaluate(f'Number(localStorage.{counter}||0)') == 0
+        if counter != 'cancel':
+            page.locator('.shadow-guidance-target').click()
+    assert task_state(worker)[1]['status'] == 'paused'
+    assert page.evaluate('Number(localStorage.cancel||0)') == 0
