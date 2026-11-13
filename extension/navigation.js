@@ -50,7 +50,8 @@
         .filter(node => this.visible(node)).map(node => this.nodeLabel(node)).sort();
       return JSON.stringify([location.href, this.nodeLabel(heading),
         labels('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]'),
-        labels('[role="menu"], [role="listbox"]'), expanded]);
+        labels('[role="menu"], [role="listbox"]'), expanded,
+        labels('details[open] > summary')]);
     }
 
     observeAttemptKey(response) {

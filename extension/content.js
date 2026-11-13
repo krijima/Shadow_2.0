@@ -423,6 +423,7 @@
   function observePage() {
     const selectors = [
       "button",
+      "details > summary",
       "a[href]",
       "input:not([type='hidden'])",
       "select",
@@ -494,7 +495,8 @@
         accessible_name: accessibleName,
         in_form: Boolean(el.form || el.closest("form")),
         controls: el.getAttribute("aria-controls") || "",
-        expanded: el.getAttribute("aria-expanded"),
+        expanded: el.tagName.toLowerCase() === "summary" && el.parentElement?.tagName.toLowerCase() === "details"
+          ? String(el.parentElement.open) : el.getAttribute("aria-expanded"),
         has_popup: Boolean(el.getAttribute("aria-haspopup") && el.getAttribute("aria-haspopup") !== "false"),
         menu_context: el.getAttribute("role") === "menuitem" || Boolean(el.closest('[role="menu"]')),
         bounding_rect: visuals.rect,

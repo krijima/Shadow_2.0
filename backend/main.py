@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from datetime import datetime
 from pathlib import Path
 import sqlite3
+from urllib.parse import urlparse
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -430,6 +431,12 @@ async def navigate_endpoint(body: NavigateRequest):
                     if candidate_allowed:
                         action = candidate_action.model_dump()
         policy = classify_navigation(action, page_snapshot)
+        if (task_mode == "observe" and not policy["reversible"]
+                and urlparse(url).hostname == "github.com"
+                and re.search(r"\b(cancel|confirm|downgrade|delete|terminate)\b", policy["label"], re.I)):
+            policy["guidance"] = (
+                "Your permission is required before changing this subscription. "
+                "SHADOW is paused. Review and confirm on GitHub only if you want to proceed.")
         waiting = task_mode == "guide" or not policy["reversible"]
         action = {**action, "element_text": policy["label"],
                   "action": "highlight" if waiting else "click"}

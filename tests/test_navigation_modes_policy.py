@@ -8,6 +8,52 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 import main
 
 
+@pytest.mark.parametrize("tag,extra", [
+    ("button", {"type": "button", "expanded": "false"}),
+    ("summary", {"expanded": "false"}),
+    ("a", {"href": "/settings/billing"}),
+])
+def test_github_billing_disclosure_and_links_are_reversible(tag, extra):
+    from navigation_policy import classify_navigation
+    snapshot = {"url": "https://github.com/settings/profile", "elements": [
+        {"shadow_id": "billing", "tag": tag, "text": "Billing and licensing",
+         "visible": True, "enabled": True, **extra}]}
+    policy = classify_navigation({"action": "click", "element_id": "billing", "confidence": 0.98}, snapshot)
+    assert policy["reversible"] is True
+
+
+@pytest.mark.parametrize("label,href", [
+    ("Overview", "/settings/billing"),
+    ("Licensing", "/settings/billing/licensing"),
+    ("Cancel subscription", "/settings/billing/cancel"),
+])
+def test_github_billing_route_stops_at_subscription_change(label, href):
+    from navigation_policy import classify_navigation
+    snapshot = {"url": "https://github.com/settings/profile", "elements": [
+        {"shadow_id": "next", "tag": "a", "text": label, "href": href}]}
+    policy = classify_navigation({"action": "click", "element_id": "next", "confidence": 0.98}, snapshot)
+    assert policy["reversible"] is (label != "Cancel subscription")
+
+
+def test_github_observe_pauses_and_requests_permission_before_cancelling(monkeypatch):
+    client = TestClient(main.app)
+    monkeypatch.setattr(main, "GEMINI_API_KEY", "test-key")
+    monkeypatch.setattr(main.navigator, "plan_next_action", lambda *args: {
+        "action": "click", "element_id": "cancel", "reason": "Cancel GitHub Pro", "confidence": 0.98})
+    task = client.post("/api/task", json={"instruction": "Cancel my subscription", "mode": "observe",
+        "url": "https://github.com/settings/billing/licensing"}).json()["task_id"]
+    response = client.post("/api/navigate", json={"task_id": task, "page_snapshot": {
+        "url": "https://github.com/settings/billing/licensing", "page_text": "GitHub Pro",
+        "elements": [{"shadow_id": "cancel", "tag": "button", "type": "button",
+                      "text": "Cancel subscription", "visible": True, "enabled": True}]}})
+    data = response.json()
+    assert data["action"]["action"] == "highlight"
+    assert data["waiting_for_user"] is True
+    assert data["reversible"] is False
+    assert "permission" in data["guidance"].lower()
+    assert client.get(f"/api/task/{task}").json()["status"] == "paused"
+
+
 @pytest.mark.parametrize("mode,label,tag,kind,href,in_form,expected,waiting", [
     ("observe", "Settings", "a", None, "/settings", False, "click", False),
     ("observe", "Manage membership", "button", "button", None, False, "highlight", True),

@@ -94,6 +94,10 @@ class ShadowNavigate:
             if el_id:
                 valid_element_ids.add(el_id)
                 visibility = "" if el_visible else " [HIDDEN]"
+                if task.get("mode") == "observe":
+                    visibility += (f" | Role: {el.get('role') or el.get('tag')}"
+                                   f" | Expanded: {el.get('expanded')}"
+                                   f" | Href: {el.get('href') or ''}")
                 element_lines.append(f"  - Element Tag: <{el_type}> | EXACT data-shadow-id: \"{el_id}\" | Text: {repr(el_text[:80])}{visibility}")
 
         elements_str = "\n".join(element_lines) if element_lines else "  (no labeled elements found)"
@@ -107,6 +111,14 @@ class ShadowNavigate:
         history_str = "\n".join(history_lines) if history_lines else "  (no history yet)"
 
         system_instruction = SYSTEM_PROMPT.format(authorized_goal=authorized_goal)
+        if task.get("mode") == "observe":
+            system_instruction += (
+                "\nObserve mode: follow visible reversible navigation toward the goal. "
+                "When a menu is already expanded, choose its relevant visible child link "
+                "instead of clicking its opener again. Billing and licensing menus lead "
+                "to account billing pages; inspect the available overview/licensing links. "
+                "Before any cancellation, confirmation, downgrade, or plan change, "
+                "select that control for user review; never treat the goal as final permission.")
         user_message = (
             f"Current URL: {url}\n"
             f"Steps taken: {steps_taken}\n\n"

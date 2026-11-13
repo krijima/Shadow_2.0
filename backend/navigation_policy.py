@@ -35,10 +35,18 @@ def classify_navigation(action: dict, snapshot: dict) -> dict:
         bool(re.search(r"subscription|membership|plan", str(snapshot.get("page_text") or "") + " " +
                        str(element.get("surrounding_heading") or "") + " " +
                        str(element.get("context_label") or ""), re.I)))
+    # GitHub's settings sidebar uses these labels for read-only billing pages.
+    # This grants navigation only; the usual origin, URL, form, and mutation
+    # checks below still decide whether the actual control is reversible.
+    github_billing_navigation = (
+        urlparse(snapshot.get("url", "")).hostname == "github.com"
+        and urlparse(snapshot.get("url", "")).path.startswith("/settings/")
+        and navigation_label.casefold() in {"billing and licensing", "overview", "licensing"})
     reversible = False
     if (element and action.get("action") == "click" and action.get("confidence", 0) >= 0.85
             and element.get("visible", True) and element.get("enabled", True)
-            and (NAVIGATION.fullmatch(navigation_label) or manage_in_subscription_context)
+            and (NAVIGATION.fullmatch(navigation_label) or manage_in_subscription_context
+                 or github_billing_navigation)
             and not MUTATION.search(risk_text)):
         tag = element.get("tag")
         if tag == "a" and element.get("href"):
@@ -51,6 +59,9 @@ def classify_navigation(action: dict, snapshot: dict) -> dict:
                           and "/api/" not in target.path.lower()
                           and not MUTATION.search(re.sub(r"[-_/]", " ", unquote(target.path + " " + target.query)))
                           and not set(query).intersection({"action", "do", "confirm", "execute", "operation", "csrf", "token"}))
+        elif tag == "summary":
+            reversible = (element.get("expanded") is not None
+                          and not element.get("in_form", False))
         elif tag == "button":
             # A label or a non-submit type alone does not prove this button
             # only opens reversible UI. Require explicit disclosure semantics.
