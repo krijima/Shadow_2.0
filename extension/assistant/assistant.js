@@ -272,31 +272,37 @@
 
   // ─── Dragging Support for Floating Assistant ───────────────────────────────────
   let isDragging = false;
-  let dragStartX, dragStartY;
+  let dragPointerId = null;
+  dragHeader.style.touchAction = 'none';
+  dragHeader.style.userSelect = 'none';
 
-  dragHeader.addEventListener("mousedown", (e) => {
-    if (e.target.closest("button")) return; // Don't drag if clicking buttons
+  dragHeader.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0 || e.target.closest("button")) return;
+    e.preventDefault();
     isDragging = true;
-    dragStartX = e.screenX;
-    dragStartY = e.screenY;
+    dragPointerId = e.pointerId;
+    dragHeader.setPointerCapture(e.pointerId);
     postToParent({ source: "SHADOW_ASSISTANT", type: "DRAG_START", screenX: e.screenX, screenY: e.screenY });
   });
 
-  window.addEventListener("mousemove", (e) => {
-    if (!isDragging) return;
-    const deltaX = e.screenX - dragStartX;
-    const deltaY = e.screenY - dragStartY;
-    dragStartX = e.screenX;
-    dragStartY = e.screenY;
-    postToParent({ source: "SHADOW_ASSISTANT", type: "DRAG_MOVE", deltaX, deltaY });
+  dragHeader.addEventListener("pointermove", (e) => {
+    if (!isDragging || e.pointerId !== dragPointerId) return;
+    postToParent({ source: "SHADOW_ASSISTANT", type: "DRAG_MOVE", screenX: e.screenX, screenY: e.screenY });
   });
 
-  window.addEventListener("mouseup", () => {
+  const finishDrag = () => {
     if (isDragging) {
       isDragging = false;
+      const pointerId = dragPointerId;
+      dragPointerId = null;
+      if (dragHeader.hasPointerCapture(pointerId)) dragHeader.releasePointerCapture(pointerId);
       postToParent({ source: "SHADOW_ASSISTANT", type: "DRAG_END" });
     }
-  });
+  };
+  dragHeader.addEventListener('pointerup', finishDrag);
+  dragHeader.addEventListener('pointercancel', finishDrag);
+  dragHeader.addEventListener('lostpointercapture', finishDrag);
+  window.addEventListener('blur', finishDrag);
 
   // ─── Button Handlers ──────────────────────────────────────────────────────────
 

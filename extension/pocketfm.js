@@ -15,6 +15,21 @@
     }
     return null;
   }
+  function candidateNodes(hint) {
+    const nodes = new Set();
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    // Inspect each text leaf once, then only a bounded number of nearby
+    // containers. Avoid extracting innerText recursively for the whole feed.
+    for (let leaf = walker.nextNode(); leaf; leaf = walker.nextNode()) {
+      const value = (leaf.nodeValue || '').trim().replace(/^[\p{Symbol}\p{Punctuation}\s]+/u, '');
+      if (value.length > 160 || !hint.test(value)) continue;
+      let node = leaf.parentElement;
+      for (let depth = 0; node && node !== document.body && depth < 4; depth++, node = node.parentElement) {
+        nodes.add(node);
+      }
+    }
+    return [...nodes];
+  }
   function controls() {
     if (!enabled()) return [];
     const found = [], seen = new Set();
@@ -23,11 +38,12 @@
       seen.add(node); found.push({node, kind, label});
     }
     const bodyText = text(document.body);
-    const nodes = [...document.querySelectorAll('button,a,[role="button"],[role="menuitem"],div,span,p')];
+    const nodes = candidateNodes(/^(?:manage|cancel|confirm|yes|\d+)\b/i);
     for (const node of nodes) {
       if (!visible(node)) continue;
-      const label = text(node);
-      if (label.length > 160 || [...node.children].some(child => text(child) === label)) continue;
+      const rawLabel = text(node);
+      const label = rawLabel.replace(/^[\p{Symbol}\p{Punctuation}\s]+/u, '');
+      if (label.length > 160 || [...node.children].some(child => text(child) === rawLabel)) continue;
       // Pocket FM uses delegated handlers on plain div/span elements. Exact
       // verified route labels remain clickable through event bubbling even
       // when the site provides neither a role nor a pointer cursor.
@@ -65,9 +81,26 @@
     if (!enabled()) return '';
     // Drawers on the real site need not have role=dialog. Keep their actual
     // headings ahead of the long home feed in the bounded page snapshot.
-    return [...document.querySelectorAll('h1,h2,h3,h4,div,span,p,[role="status"],[role="alert"]')]
+    return candidateNodes(/^(?:active|current|subscription|cancellation|your)\b/i)
       .filter(node => visible(node) && /^(?:active subscriptions|current plan details|(?:your )?subscription (?:has been |is )?cancelled[.!]?|cancellation (?:is )?(?:confirmed|successful)[.!]?)$/i.test(text(node)))
       .map(node => node.innerText || node.textContent || '').join('\n').slice(0, 1000);
   }
-  globalThis.ShadowPocketFM = {enabled, controls, state, contextText};
+  async function openProfile(node, click, active = () => true) {
+    node.scrollIntoView({block: 'nearest', inline: 'nearest'});
+    const box = node.getBoundingClientRect();
+    const options = {bubbles: true, cancelable: true, view: window,
+      clientX: box.left + box.width / 2, clientY: box.top + box.height / 2, relatedTarget: null};
+    // React-style menus listen for mouseover; native menus may listen for
+    // mouseenter. Stop as soon as the menu opens rather than toggling it shut.
+    for (const type of ['pointerover', 'mouseover', 'mouseenter']) {
+      if (!active() || !node.isConnected) return {result: 'cancelled'};
+      node.dispatchEvent(type.startsWith('pointer')
+        ? new PointerEvent(type, {...options, pointerType: 'mouse', pointerId: 1})
+        : new MouseEvent(type, options));
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (controls().some(control => control.kind === 'manage_subscriptions')) return {result: 'opened_profile_menu'};
+    }
+    return active() && node.isConnected ? click() : {result: 'cancelled'};
+  }
+  globalThis.ShadowPocketFM = {enabled, controls, state, contextText, openProfile};
 })();

@@ -4,10 +4,10 @@ from test_navigation_modes_browser import provider_site, task_state
 from test_demo_panel_navigation import loaded_extension, panel, start, wait_for
 
 
-@pytest.mark.parametrize('decision', ['approve', 'reject', 'disabled', 'delegated'])
+@pytest.mark.parametrize('decision', ['approve', 'reject', 'disabled', 'delegated', 'hover-heading'])
 def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
     page, worker, events = provider_site
-    body = '''<!doctype html><html><body><h1>Pocket FM</h1>
+    body = '''<!doctype html><html><head><meta charset="utf-8"></head><body><h1>Pocket FM</h1>
       <button onclick="localStorage.storeClicks=Number(localStorage.storeClicks||0)+1">Store</button>
       <div style="position:absolute;right:20px;top:10px;cursor:pointer" onclick="openProfile()">
         <img width="45" height="45" alt="Anonymous" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='45' height='45'%3E%3C/svg%3E"></div>
@@ -28,6 +28,9 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
             'onclick="openProfile()"', 'id="account-trigger"').replace(
             'alt="Anonymous"', 'alt=""').replace(
             'const view=', "document.addEventListener('click', event => { if(event.target.closest('#account-trigger')) openProfile(); }); const view=")
+    if decision == 'hover-heading':
+        body = body.replace('onclick="openProfile()"', 'onmouseenter="openProfile()"').replace(
+            '<span>60 mins daily</span>', '<h5><span>✨</span>60 mins daily</h5>')
     def serve(route):
         if '/__shadow__/' in route.request.url:
             route.fallback()
@@ -56,8 +59,8 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
         assert task_state(worker)[1]['status'] == 'paused'
         return
     assert page.url == 'https://pocketfm.com/'
-    panel(page).locator('#approveBtn' if decision in ('approve', 'delegated') else '#rejectBtn').click()
-    if decision in ('approve', 'delegated'):
+    panel(page).locator('#approveBtn' if decision in ('approve', 'delegated', 'hover-heading') else '#rejectBtn').click()
+    if decision in ('approve', 'delegated', 'hover-heading'):
         wait_for(page, lambda: panel(page).locator('#headerStatusText').inner_text() == 'COMPLETED', events, timeout=30)
         assert page.evaluate('Number(localStorage.cancelClicks||0)') == 1
     else:

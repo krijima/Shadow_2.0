@@ -15,6 +15,7 @@
   let pendingPocketApproval = null;
   let shadowIndex = 0;
   let assistantFrame = null;
+  let panelDrag = null;
   let currentMode = "observe";
   let ownerTabId = null;
   let runtimeInvalidated = false;
@@ -596,22 +597,30 @@
     }
 
     if (action.action === "click") {
-      el.scrollIntoView({ behavior: "instant", block: "center" });
-      el.focus();
-      // Dispatch real mouse events and click
-      el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
-      el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
-      el.click();
+      const click = () => {
+        el.scrollIntoView({ behavior: "instant", block: "center" });
+        el.focus();
+        // Dispatch mouse events and click.
+        el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
+        el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
+        el.click();
 
-      // If anchor tag with href and no onclick handler, ensure link is followed
-      if (el.tagName.toLowerCase() === "a" && el.href && !el.getAttribute("onclick")) {
-        setTimeout(() => {
-          if (location.href !== el.href) {
-            window.location.href = el.href;
-          }
-        }, 500);
+        // If anchor tag with href and no onclick handler, ensure link is followed.
+        if (el.tagName.toLowerCase() === "a" && el.href && !el.getAttribute("onclick")) {
+          setTimeout(() => {
+            if (location.href !== el.href) {
+              window.location.href = el.href;
+            }
+          }, 500);
+        }
+        return { result: "clicked", element_id: action.element_id };
+      };
+      if (currentMode === 'observe' && globalThis.ShadowPocketFM?.enabled() &&
+          globalThis.ShadowPocketFM.controls().some(control => control.node === el && control.kind === 'profile')) {
+        const executionTask = taskId;
+        return globalThis.ShadowPocketFM.openProfile(el, click, () => running && taskId === executionTask);
       }
-      return { result: "clicked", element_id: action.element_id };
+      return click();
     }
 
     if (action.action === "select") {
@@ -875,6 +884,22 @@
   }
 
   // ─── Message Listener (from iframe via postMessage) ───────────────────────────
+  function positionAssistant(left, top) {
+    if (!assistantFrame) return;
+    assistantFrame.style.maxWidth = `${Math.max(1, innerWidth - 16)}px`;
+    assistantFrame.style.maxHeight = `${Math.max(1, innerHeight - 16)}px`;
+    const rect = assistantFrame.getBoundingClientRect();
+    const x = Math.min(Math.max(8, left), Math.max(8, innerWidth - rect.width - 8));
+    const y = Math.min(Math.max(8, top), Math.max(8, innerHeight - rect.height - 8));
+    Object.assign(assistantFrame.style, {right: 'auto', bottom: 'auto', left: `${x}px`, top: `${y}px`});
+  }
+  window.addEventListener('resize', () => {
+    if (!assistantFrame) return;
+    panelDrag = null;
+    const rect = assistantFrame.getBoundingClientRect();
+    positionAssistant(rect.left, rect.top);
+  });
+
   window.addEventListener("message", async (event) => {
     // Security: only accept messages from chrome-extension origin or same page
     const isExtensionOrigin =
@@ -1096,20 +1121,27 @@
       case "SET_HEIGHT": {
         if (assistantFrame) {
           assistantFrame.style.height = `${msg.height}px`;
+          const rect = assistantFrame.getBoundingClientRect();
+          positionAssistant(rect.left, rect.top);
         }
         break;
       }
 
-      case "DRAG_MOVE": {
+      case 'DRAG_START': {
         if (assistantFrame) {
           const rect = assistantFrame.getBoundingClientRect();
-          let newRight = Math.max(10, window.innerWidth - (rect.right + msg.deltaX));
-          let newBottom = Math.max(10, window.innerHeight - (rect.bottom + msg.deltaY));
-          assistantFrame.style.right = `${newRight}px`;
-          assistantFrame.style.bottom = `${newBottom}px`;
+          panelDrag = {left: rect.left, top: rect.top, screenX: msg.screenX, screenY: msg.screenY};
         }
         break;
       }
+      case 'DRAG_MOVE': {
+        if (panelDrag && Number.isFinite(msg.screenX) && Number.isFinite(msg.screenY)) {
+          positionAssistant(panelDrag.left + msg.screenX - panelDrag.screenX,
+                            panelDrag.top + msg.screenY - panelDrag.screenY);
+        }
+        break;
+      }
+      case 'DRAG_END': panelDrag = null; break;
     }
   });
 

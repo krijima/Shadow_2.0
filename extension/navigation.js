@@ -256,7 +256,7 @@
         attempts.add(attemptKey);
         this.saveObserveAttempts(taskId, attempts);
       }
-      const result = this.api.execute(response.action);
+      const result = await this.api.execute(response.action);
       if (result?.error) throw new Error(result.error);
       this.api.post({source: "SHADOW_CONTENT", type: "ACTION_TAKEN", action: response.action,
         result, guidance: response.guidance, mode: this.api.mode(), detections: response.detections});

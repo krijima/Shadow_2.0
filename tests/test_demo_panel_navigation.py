@@ -32,7 +32,7 @@ def loaded_extension(tmp_path, request):
                   f"--load-extension={ROOT / 'extension'}"],
         )
         if harness:
-            if request.module.__name__ == 'test_pocketfm_browser':
+            if request.module.__name__ in {'test_pocketfm_browser', 'test_floating_panel_drag'}:
                 context.route(APP + '/static/index.html', lambda route: route.fulfill(
                     content_type='text/html', body='<html><body><h1>Fixture bootstrap</h1></body></html>'))
             # Explicitly NOT an installed-extension check. Run the unmodified
