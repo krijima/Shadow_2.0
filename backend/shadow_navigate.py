@@ -113,6 +113,9 @@ class ShadowNavigate:
             f"Page elements (data-shadow-id):\n{elements_str}\n\n"
             f"Page text (excerpt):\n{page_text[:1500]}\n\n"
             f"Recent action history:\n{history_str}\n\n"
+            "If a recent click did not advance the same page, do not select that "
+            "semantic control again. Prefer one different, visible reversible control; "
+            "if none is available, stop and explain why.\n\n"
             f"Choose the single best next action to achieve the authorized goal."
         )
 

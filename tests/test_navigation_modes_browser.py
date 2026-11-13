@@ -130,7 +130,18 @@ def provider_site(loaded_extension, monkeypatch):
                 body = '''<h1>Apple Music</h1><button type="button" data-shadow-id="my-account" aria-haspopup="menu" aria-expanded="true" onclick="localStorage.accountClicks=Number(localStorage.accountClicks||0)+1">My Account</button>
                   <div role="menu"><a role="menuitem" data-shadow-id="apple-settings" href="/us/account/settings">Settings</a></div>'''
             else:
-                if "nochange=1" in parsed.query:
+                if "rerender=1" in parsed.query:
+                    # The replacement intentionally has no data-shadow-id. The
+                    # extension assigns a fresh temporary ID on each render.
+                    body = '''<h1>Apple Music</h1><button type="button" aria-haspopup="menu" aria-expanded="false" onclick="rerenderAccount(this)">My Account</button>
+                      <script>function rerenderAccount(button) {
+                        localStorage.accountClicks = Number(localStorage.accountClicks || 0) + 1;
+                        const replacement = button.cloneNode(true);
+                        replacement.onclick = () => rerenderAccount(replacement);
+                        button.replaceWith(replacement);
+                        setTimeout(() => { const note = document.createElement('p'); note.textContent = 'Feed refreshed'; document.body.appendChild(note); }, 100);
+                      }</script>'''
+                elif "nochange=1" in parsed.query:
                     body = '''<h1>Apple Music</h1><button type="button" data-shadow-id="my-account" aria-haspopup="menu" aria-expanded="false" onclick="localStorage.accountClicks=Number(localStorage.accountClicks||0)+1">My Account</button>'''
                 else:
                     body = '''<h1>Apple Music</h1><button type="button" data-shadow-id="my-account" aria-haspopup="menu" aria-expanded="false" onclick="openAccountMenu()">My Account</button>
@@ -343,7 +354,23 @@ def test_apple_nochange_opener_is_clicked_once_then_shows_specific_guidance(prov
     wait_for(page, lambda: page.locator(".shadow-guidance-badge").inner_text() == "Open Settings to continue.",
              events, timeout=25)
     assert page.evaluate("Number(localStorage.accountClicks || 0)") == 1
-    assert len([e for e in events if e.get("url", "").endswith("/api/navigate")]) == 1
+    # Observe gives the planner one alternate, verified reversible option. The
+    # provider route returns the same opener, so it is rejected without a click.
+    assert len([e for e in events if e.get("url", "").endswith("/api/navigate")]) == 2
+    assert task_state(worker)[1]["status"] == "paused"
+
+
+def test_observe_re_rendered_control_is_clicked_once_then_pauses(provider_site):
+    """Fresh temporary IDs and feed churn must not count as navigation progress."""
+    page, worker, events = provider_site
+    page.goto("https://music.apple.com/us/new?rerender=1")
+    page.locator("#shadow-assistant-frame").wait_for()
+    events.clear()
+    start(page, "observe", "Cancel my Apple Music subscription.")
+    wait_for(page, lambda: page.locator(".shadow-guidance-badge").count() == 1, events, timeout=25)
+    assert page.evaluate("Number(localStorage.accountClicks || 0)") == 1
+    assert page.locator(".shadow-guidance-badge").inner_text() == "Open Settings to continue."
+    assert len([e for e in events if e.get("url", "").endswith("/api/navigate")]) == 2
     assert task_state(worker)[1]["status"] == "paused"
 
 

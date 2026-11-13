@@ -14,8 +14,8 @@ from playwright.sync_api import sync_playwright
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = "http://127.0.0.1:8080"
-API = "http://127.0.0.1:8001"
+APP = os.environ.get("SHADOW_TEST_APP", "http://127.0.0.1:8080")
+API = os.environ.get("SHADOW_TEST_API", "http://127.0.0.1:8001")
 GOAL = "Cancel my subscription. Do not accept discount offers or upgrades."
 
 

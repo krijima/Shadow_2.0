@@ -140,6 +140,72 @@ def test_semantic_no_progress_and_oscillation_halt():
     assert "produced zero state change" in reason
 
 
+def test_unrelated_control_churn_is_not_semantic_progress():
+    """A refreshed feed must not hide a click that went nowhere."""
+    detector = LoopDetector()
+    initial = {
+        "url": "https://one.google.com/settings",
+        "elements": [{"shadow_id": "shadow-act-1", "tag": "button", "role": "button",
+                      "text": "My Account", "visible": True}],
+        "page_text": "Account settings",
+    }
+    refreshed = {
+        **initial,
+        "elements": initial["elements"] + [
+            {"shadow_id": "shadow-act-99", "tag": "button", "role": "button",
+             "text": "New feed item", "visible": True}],
+        "page_text": "Account settings New feed item",
+    }
+    detector.record_step("feed-churn", initial, {"action": "click", "element_text": "My Account"}, semantic_only=True)
+    stalled, description, _ = detector.record_step(
+        "feed-churn", refreshed, {"action": "click", "element_text": "My Account"}, semantic_only=True)
+    assert stalled is False
+    assert "No state change detected" in description
+
+
+def test_semantic_progress_accepts_non_h1_page_heading():
+    detector = LoopDetector()
+    before = {
+        "url": "https://example.com/account",
+        "elements": [{"shadow_id": "heading-1", "tag": "h2", "text": "Account settings", "visible": True}],
+        "page_text": "Account settings",
+    }
+    after = {
+        **before,
+        "elements": [{"shadow_id": "heading-2", "tag": "h2", "text": "Billing settings", "visible": True}],
+        "page_text": "Billing settings",
+    }
+    detector.record_step("heading-change", before, {"action": "click", "element_text": "Billing"}, semantic_only=True)
+    stalled, description, _ = detector.record_step(
+        "heading-change", after, {"action": "click", "element_text": "Billing"}, semantic_only=True)
+    assert stalled is False
+    assert "Page updated" in description
+
+
+def test_observe_reversible_step_reaches_semantic_loop_detector():
+    """Observe's early response branch must not bypass loop tracking."""
+    from boundaries import SnapshotBoundary
+    SnapshotBoundary.permit_domain("music.apple.com")
+    create_resp = client.post("/api/task", json={
+        "instruction": "Cancel my Apple Music subscription.",
+        "mode": "observe",
+        "url": "https://music.apple.com/us/new",
+    })
+    task_id = create_resp.json()["task_id"]
+    snapshot = {
+        "url": "https://music.apple.com/us/new",
+        "elements": [{"shadow_id": "menu-1", "tag": "button", "role": "button",
+                      "text": "My Account", "accessible_name": "My Account", "visible": True,
+                      "enabled": True, "has_popup": True, "expanded": "false"}],
+        "elements_count": 1,
+        "page_text": "Apple Music",
+    }
+    response = client.post("/api/navigate", json={"task_id": task_id, "page_snapshot": snapshot})
+    assert response.status_code == 200
+    assert response.json()["reversible"] is True
+    assert task_id in main.loop_detector._task_history
+
+
 def test_step_limit_boundary_halts_task():
     """
     Test 3: Step budget limit must record status as 'halted' instead of 'completed'.

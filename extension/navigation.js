@@ -15,11 +15,76 @@
       }, true);
     }
 
+    text(value) {
+      return String(value || "").replace(/\s+/g, " ").trim().slice(0, 120);
+    }
+
+    visible(node) {
+      if (!node) return false;
+      const style = getComputedStyle(node);
+      return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+    }
+
+    nodeLabel(node) {
+      return this.text(node?.getAttribute("aria-label") || node?.getAttribute("aria-labelledby") ||
+        node?.innerText || node?.textContent || node?.id || node?.tagName);
+    }
+
     signature() {
       const snapshot = this.api.snapshot();
-      return JSON.stringify([location.href, snapshot.elements.map(el =>
-        [el.shadow_id, el.tag, el.text, el.accessible_name, el.href, el.value, el.checked,
-          el.enabled, el.role, el.controls, el.expanded, el.has_popup, el.menu_context])]);
+      // Guide keeps its existing broad continuation signal because the user,
+      // not Observe, made the click. The stricter signal is Observe-only.
+      if (this.api.mode() !== "observe") {
+        return JSON.stringify([location.href, snapshot.elements.map(el =>
+          [el.shadow_id, el.tag, el.text, el.accessible_name, el.href, el.value, el.checked,
+            el.enabled, el.role, el.controls, el.expanded, el.has_popup, el.menu_context])]);
+      }
+      // Framework re-renders, regenerated data-shadow-id values, and unrelated
+      // feed updates are not navigation progress. Observe advances only when a
+      // URL, page heading, menu, or dialog changes.
+      const labels = selector => [...document.querySelectorAll(selector)]
+        .filter(node => this.visible(node)).map(node => this.nodeLabel(node)).sort();
+      const heading = [...document.querySelectorAll('h1, h2, h3, [role="heading"]')]
+        .find(node => this.visible(node));
+      const expanded = [...document.querySelectorAll('[aria-expanded="true"]')]
+        .filter(node => this.visible(node)).map(node => this.nodeLabel(node)).sort();
+      return JSON.stringify([location.href, this.nodeLabel(heading),
+        labels('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]'),
+        labels('[role="menu"], [role="listbox"]'), expanded]);
+    }
+
+    observeAttemptKey(response) {
+      const target = this.target(response);
+      if (!target) return null;
+      const identity = [target.tag, target.type, target.role, target.href,
+        target.accessible_name || target.text || target.value, target.controls,
+        target.surrounding_heading, target.context_label].map(value => this.text(value));
+      return JSON.stringify([this.signature(), identity]);
+    }
+
+    observeAttempts(taskId) {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem("shadow_observe_attempts") || "null");
+        if (saved?.taskId === taskId && Array.isArray(saved.keys)) return new Set(saved.keys);
+      } catch {}
+      return new Set();
+    }
+
+    saveObserveAttempts(taskId, attempts) {
+      sessionStorage.setItem("shadow_observe_attempts", JSON.stringify({taskId, keys: [...attempts]}));
+    }
+
+    observeAttemptCount(attempts, context) {
+      return [...attempts].filter(key => {
+        try { return JSON.parse(key)?.[0] === context; } catch { return false; }
+      }).length;
+    }
+
+    async pauseObserve(response, taskId, epoch, guidance) {
+      const update = await this.api.send({type: "UPDATE_TASK_STATUS", task_id: taskId, status: "paused"});
+      if (epoch === this.epoch && taskId === this.api.task() && update?.status === "paused") {
+        await this.show({...response, reversible: false, guidance});
+      }
     }
 
     reset(reason) {
@@ -27,6 +92,7 @@
       this.userPaused = reason === "user_pause";
       this.waiting = null;
       sessionStorage.removeItem("shadow_navigation_intent");
+      sessionStorage.removeItem("shadow_observe_attempts");
       this.api.clear();
     }
 
@@ -176,12 +242,35 @@
         if (epoch === this.epoch && taskId === this.api.task() && paused?.status === "paused") await this.show(this.changedReview(response));
         return false;
       }
+      const observe = this.api.mode() === "observe";
+      const context = observe && this.signature();
+      const attemptKey = observe && this.observeAttemptKey(response);
+      const attempts = observe ? this.observeAttempts(taskId) : null;
+      if (observe && attemptKey && attempts.has(attemptKey)) {
+        await this.pauseObserve(response, taskId, epoch,
+          response.stalled_guidance || "That control was already tried without advancing.");
+        return false;
+      }
+      if (observe && attemptKey) {
+        attempts.add(attemptKey);
+        this.saveObserveAttempts(taskId, attempts);
+      }
       const result = this.api.execute(response.action);
       if (result?.error) throw new Error(result.error);
       this.api.post({source: "SHADOW_CONTENT", type: "ACTION_TAKEN", action: response.action,
         result, guidance: response.guidance, mode: this.api.mode(), detections: response.detections});
       if (await this.changed(before, epoch, taskId)) return true;
       if (epoch !== this.epoch || taskId !== this.api.task()) return false;
+      if (observe && this.observeAttemptCount(attempts, context) < 2) {
+        // Keep the loop active for exactly one alternate reversible plan. The
+        // next response is checked against the stable attempted-control key.
+        return true;
+      }
+      if (observe) {
+        await this.pauseObserve(response, taskId, epoch,
+          response.stalled_guidance || "This control did not advance the page.");
+        return false;
+      }
       const update = await this.api.send({type: "UPDATE_TASK_STATUS", task_id: taskId, status: "paused"});
       if (epoch === this.epoch && taskId === this.api.task() && update?.status === "paused") await this.show({...response, reversible: false,
         guidance: response.stalled_guidance || `${response.action.element_text || "This control"}? Review on page.`});

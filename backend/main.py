@@ -433,6 +433,22 @@ async def navigate_endpoint(body: NavigateRequest):
         waiting = task_mode == "guide" or not policy["reversible"]
         action = {**action, "element_text": policy["label"],
                   "action": "highlight" if waiting else "click"}
+        # Observe returns early below, so it must still use the semantic loop
+        # detector. Guide remains user-driven and deliberately bypasses this.
+        if task_mode == "observe" and not waiting:
+            is_stalled, _, stall_reason = loop_detector.record_step(
+                task_id, page_snapshot, action, semantic_only=True)
+            if is_stalled:
+                update_task_status(task_id, "halted")
+                log_action(task_id=task_id, step_number=task.get("steps_taken", 0),
+                           action_type="blocked", element_id=action.get("element_id", ""),
+                           element_text=policy["label"], reason=stall_reason or "Navigation stalled.",
+                           result="blocked")
+                return {"action": {"action": "stop", "element_id": "", "value": "",
+                                    "reason": stall_reason or "Navigation stalled.", "confidence": 1.0},
+                        "detections": detections, "requires_approval": False, "approval_id": None,
+                        "blocked": True, "block_reason": "loop_stalled", "mode": task_mode,
+                        "status": "halted"}
         if waiting:
             update_task_status(task_id, "paused")
         increment_steps(task_id)

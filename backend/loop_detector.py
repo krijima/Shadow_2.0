@@ -29,7 +29,7 @@ def normalize_url(url: str) -> str:
         return url.split("#")[0]
 
 
-def extract_semantic_state(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+def extract_semantic_state(snapshot: Dict[str, Any], semantic_only: bool = False) -> Dict[str, Any]:
     """
     Extract meaningful semantic fingerprint of page and dialog state.
     Ignores dynamic/ephemeral element IDs (such as 'shadow-act-12').
@@ -39,8 +39,12 @@ def extract_semantic_state(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     elements = snapshot.get("elements", [])
     page_text = (snapshot.get("page_text") or "").strip()
 
-    # 1. Identify active dialog / modal / alert headers
+    # 1. Identify meaningful page, dialog, and menu state. A complete control
+    # list is intentionally not progress: feeds frequently add controls while
+    # the user remains in the same flow.
     dialog_titles = []
+    page_titles = []
+    menu_items = []
     for el in elements:
         if not isinstance(el, dict):
             continue
@@ -49,11 +53,17 @@ def extract_semantic_state(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         text = (el.get("text") or el.get("accessible_name") or "").strip()
         if not text:
             continue
-        # Look for dialog/alert indicators or top-level headings
-        if role in ("dialog", "alertdialog", "alert") or tag in ("h1", "h2"):
+        if role in ("dialog", "alertdialog", "alert"):
             dialog_titles.append(text[:60])
+        if tag in ("h1", "h2", "h3") or role == "heading":
+            page_titles.append(text[:60])
+        if (el.get("menu_context") or role in ("menu", "menuitem", "listbox", "option")
+                or str(el.get("expanded")).lower() == "true"):
+            menu_items.append(f"{role}:{text[:60]}")
 
     dialog_summary = " | ".join(sorted(set(dialog_titles[:4]))) if dialog_titles else "none"
+    page_summary = " | ".join(sorted(set(page_titles[:2]))) if page_titles else "none"
+    menu_summary = " | ".join(sorted(set(menu_items[:6]))) if menu_items else "none"
 
     # 2. Extract stable interactive control signatures (tag, role, normalized_text)
     control_signatures = []
@@ -79,12 +89,17 @@ def extract_semantic_state(snapshot: Dict[str, Any]) -> Dict[str, Any]:
     cleaned_text = re.sub(r"\s+", " ", page_text).lower()[:300]
 
     # Deterministic fingerprint hash
-    sig_raw = f"{norm_url}###{dialog_summary}###{';'.join(control_signatures_sorted)}###{cleaned_text[:150]}"
+    if semantic_only:
+        sig_raw = f"{norm_url}###{page_summary}###{dialog_summary}###{menu_summary}"
+    else:
+        sig_raw = f"{norm_url}###{dialog_summary}###{';'.join(control_signatures_sorted)}###{cleaned_text[:150]}"
     sig_hash = hashlib.sha256(sig_raw.encode("utf-8")).hexdigest()[:16]
 
     return {
         "url": norm_url,
+        "page_summary": page_summary,
         "dialog_summary": dialog_summary,
+        "menu_summary": menu_summary,
         "controls": control_signatures_sorted,
         "controls_count": len(control_signatures_sorted),
         "text_excerpt": cleaned_text[:120],
@@ -116,6 +131,7 @@ class LoopDetector:
         task_id: str,
         page_snapshot: Dict[str, Any],
         proposed_action: Dict[str, Any],
+        semantic_only: bool = False,
     ) -> Tuple[bool, str, Optional[str]]:
         """
         Record a navigation step and check if progress has stalled.
@@ -123,7 +139,7 @@ class LoopDetector:
         Returns:
             (is_stalled: bool, change_description: str, stall_reason: Optional[str])
         """
-        current_state = extract_semantic_state(page_snapshot)
+        current_state = extract_semantic_state(page_snapshot, semantic_only=semantic_only)
         history = self._task_history.setdefault(task_id, [])
         actions = self._action_history.setdefault(task_id, [])
 
@@ -156,24 +172,30 @@ class LoopDetector:
 
         # 1. Compare previous state to current state to determine what changed
         url_changed = prev_state["url"] != current_state["url"]
+        page_changed = prev_state["page_summary"] != current_state["page_summary"]
         dialog_changed = prev_state["dialog_summary"] != current_state["dialog_summary"]
-
+        menu_changed = prev_state["menu_summary"] != current_state["menu_summary"]
         prev_controls = set(prev_state["controls"])
         curr_controls = set(current_state["controls"])
         controls_added = len(curr_controls - prev_controls)
         controls_removed = len(prev_controls - curr_controls)
-        controls_changed = (controls_added > 0 or controls_removed > 0)
+        controls_changed = controls_added > 0 or controls_removed > 0
 
         # Build human-readable change description
         change_parts = []
         if url_changed:
             change_parts.append(f"URL changed to '{current_state['url']}'")
+        if page_changed:
+            change_parts.append(f"Page updated ('{current_state['page_summary']}')")
         if dialog_changed:
             change_parts.append(f"Dialog updated ('{current_state['dialog_summary']}')")
-        if controls_changed:
+        if menu_changed:
+            change_parts.append(f"Menu updated ('{current_state['menu_summary']}')")
+        if not semantic_only and controls_changed:
             change_parts.append(f"Controls updated (+{controls_added}, -{controls_removed})")
 
-        has_state_changed = url_changed or dialog_changed or controls_changed
+        has_state_changed = (url_changed or page_changed or dialog_changed or menu_changed) if semantic_only \
+            else (url_changed or dialog_changed or controls_changed)
 
         if has_state_changed:
             change_desc = f"DOM changed: {', '.join(change_parts)}"
