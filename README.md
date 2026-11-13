@@ -360,8 +360,7 @@ All screenshots referenced below are stored in [`artifacts/screenshots/`](file:/
 
 ### Hackathon Team
 - **Team Name:** `Team lastmoment` (DevHack 2026)
-- **Project Lead & Development:** [Kritharth Jain / krijima](https://github.com/krijima)
-- *Additional team contributors: [Add Team Members Here]*
+- **Project Lead & Development:** `lastmoment team`
 
 ### Acknowledgements & Open-Source Attribution
 - **Yamanalab eCommerce Dark Pattern Dataset:** Open-source research dataset under Apache-2.0 License.
