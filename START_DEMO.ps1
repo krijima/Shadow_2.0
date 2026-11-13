@@ -14,6 +14,8 @@ Write-Host ""
 
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $Root
+$StreamCovePort = 8081
+$StreamCoveUrl = "http://127.0.0.1:$StreamCovePort"
 
 # 1. Check Python
 $PythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -49,16 +51,16 @@ if ($BackendListening) {
     Start-Sleep -Seconds 2
 }
 
-# 3. Check StreamCove (:8080) — Safe reuse & non-destructive conflict reporting
-$StreamCoveListening = Get-NetTCPConnection -LocalPort 8080 -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
+# 3. Check StreamCove (:8081) — 8080 is used by the local Oracle listener
+$StreamCoveListening = Get-NetTCPConnection -LocalPort $StreamCovePort -ErrorAction SilentlyContinue | Where-Object { $_.State -eq 'Listen' }
 $StreamCoveHealthy = $false
 
 if ($StreamCoveListening) {
     try {
-        $SubTest = Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/subscription?user_id=demo" -Method Get -TimeoutSec 2 -ErrorAction Stop
+        $SubTest = Invoke-RestMethod -Uri "$StreamCoveUrl/api/subscription?user_id=demo" -Method Get -TimeoutSec 2 -ErrorAction Stop
         if ($SubTest.status) {
             $StreamCoveHealthy = $true
-            Write-Host "[3/5] StreamCove is already running and healthy on http://127.0.0.1:8080 (Reused)." -ForegroundColor Green
+            Write-Host "[3/5] StreamCove is already running and healthy on $StreamCoveUrl (Reused)." -ForegroundColor Green
         }
     } catch {
         $StreamCoveHealthy = $false
@@ -66,11 +68,11 @@ if ($StreamCoveListening) {
 
     if (-not $StreamCoveHealthy) {
         $PidListSC = ($StreamCoveListening | Select-Object -ExpandProperty OwningProcess -Unique) -join ', '
-        Write-Host "[3/5] Warning: Port 8080 is listening (PID $PidListSC) but not responding to StreamCove subscription API." -ForegroundColor Yellow
+        Write-Host "[3/5] Warning: Port $StreamCovePort is listening (PID $PidListSC) but not responding to StreamCove subscription API." -ForegroundColor Yellow
     }
 } else {
-    Write-Host "[3/5] Starting StreamCove service on http://127.0.0.1:8080 ..." -ForegroundColor Yellow
-    Start-Process -FilePath "python" -ArgumentList "-m uvicorn server:app --app-dir streamcove --host 127.0.0.1 --port 8080 --reload" -WindowStyle Hidden
+    Write-Host "[3/5] Starting StreamCove service on $StreamCoveUrl ..." -ForegroundColor Yellow
+    Start-Process -FilePath "python" -ArgumentList "-m uvicorn server:app --app-dir streamcove --host 127.0.0.1 --port $StreamCovePort --reload" -WindowStyle Hidden
     Start-Sleep -Seconds 2
 }
 
@@ -82,12 +84,12 @@ $Ready = $false
 for ($i = 1; $i -le $MaxRetries; $i++) {
     try {
         $BackendRes = Invoke-RestMethod -Uri "http://127.0.0.1:8001/api/health" -Method Get -TimeoutSec 2
-        $StreamRes = Invoke-RestMethod -Uri "http://127.0.0.1:8080/api/subscription?user_id=demo" -Method Get -TimeoutSec 2
+        $StreamRes = Invoke-RestMethod -Uri "$StreamCoveUrl/api/subscription?user_id=demo" -Method Get -TimeoutSec 2
         if ($BackendRes.status -eq 'ok' -and $StreamRes.status) {
             $Ready = $true
             $GeminiState = if ($BackendRes.gemini_configured) { "Configured (Ready)" } else { "Unconfigured (Local fallback)" }
             Write-Host "      Backend (:8001):    OK" -ForegroundColor Green
-            Write-Host "      StreamCove (:8080): OK (Subscription: $($StreamRes.status.ToUpper()))" -ForegroundColor Green
+            Write-Host "      StreamCove (:$StreamCovePort): OK (Subscription: $($StreamRes.status.ToUpper()))" -ForegroundColor Green
             Write-Host "      Gemini Engine:      $GeminiState" -ForegroundColor Cyan
             break
         }
@@ -102,13 +104,13 @@ if (-not $Ready) {
 
 # 5. Launch Demo Control Center
 Write-Host "[5/5] Launching Demo Control Center in browser..." -ForegroundColor Green
-Start-Process "http://127.0.0.1:8080/static/demo_control.html"
+Start-Process "$StreamCoveUrl/static/demo_control.html"
 
 Write-Host ""
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host "   SHADOW DEMO ENVIRONMENT READY!" -ForegroundColor Green
-Write-Host "   - Demo Control Center: http://127.0.0.1:8080/static/demo_control.html" -ForegroundColor White
-Write-Host "   - StreamCove Demo:     http://127.0.0.1:8080/static/index.html" -ForegroundColor White
+Write-Host "   - Demo Control Center: $StreamCoveUrl/static/demo_control.html" -ForegroundColor White
+Write-Host "   - StreamCove Demo:     $StreamCoveUrl/static/index.html" -ForegroundColor White
 Write-Host "   - Backend Swagger API: http://127.0.0.1:8001/docs" -ForegroundColor White
 Write-Host "======================================================================" -ForegroundColor Cyan
 Write-Host ""
