@@ -786,6 +786,49 @@ html, body {
   color: var(--text-sub);
 }
 
+.terminal-audit-card {
+  margin-top: 12px;
+  background: #111a26;
+  border-color: rgba(6, 182, 212, 0.24);
+}
+
+.terminal-status-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--status-cyan);
+  background: rgba(6, 182, 212, 0.12);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.terminal-audit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.terminal-audit-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+}
+
+.terminal-audit-grid span {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.terminal-audit-grid strong {
+  color: var(--text-sub);
+  font-size: 11px;
+}
+
 /* ==========================================================================
    Modal Dialogs (Approval & Ask User)
    ========================================================================== */

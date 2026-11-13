@@ -646,7 +646,7 @@
     storage: chrome.storage.local, task: () => taskId, mode: () => currentMode,
     highlight: highlightGuidanceTarget, clear: clearGuidanceHighlights, post: postToAssistant,
     run: () => { running = true; navigationLoop(); },
-    fail: error => { running = false; postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", error: error.message}); }
+    fail: error => { running = false; postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", task_id: taskId, mode: currentMode, status: "failed", error: error.message}); }
   });
 
   // ─── Navigation Loop ──────────────────────────────────────────────────────────
@@ -666,6 +666,8 @@
             source: "SHADOW_CONTENT",
             type: "TASK_HALTED",
             task_id: taskId,
+            mode: currentMode,
+            status: "halted",
             reason: "Demo Mode is restricted to StreamCove demonstration environment. Task halted on external site.",
           });
           runtimeMessage({
@@ -696,6 +698,9 @@
           postToAssistant({
             source: "SHADOW_CONTENT",
             type: "TASK_FAILED",
+            task_id: taskId,
+            mode: currentMode,
+            status: "failed",
             error: err.message || String(err),
           });
           running = false;
@@ -729,6 +734,9 @@
           postToAssistant({
             source: "SHADOW_CONTENT",
             type: "TASK_FAILED",
+            task_id: taskId,
+            mode: currentMode,
+            status: "failed",
             error: errMsg,
           });
           running = false;
@@ -790,6 +798,8 @@
               source: "SHADOW_CONTENT",
               type: "TASK_HALTED",
               task_id: taskId,
+              mode: currentMode,
+              status: "halted",
               reason: action.reason || response.block_reason || "Task halted by safety boundary.",
               detections: response.detections || [],
             });
@@ -802,6 +812,9 @@
             postToAssistant({
               source: "SHADOW_CONTENT",
               type: "TASK_COMPLETE",
+              task_id: taskId,
+              mode: currentMode,
+              status: "completed",
               message: action.reason,
               detections: response.detections || [],
             });
@@ -1022,7 +1035,7 @@
         });
         if (approvalTaskId !== taskId) return;
         if (!approveResult || approveResult.error) {
-          postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", error: approveResult?.error || "Approval failed"});
+          postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", task_id: taskId, mode: currentMode, status: "failed", error: approveResult?.error || "Approval failed"});
           return;
         }
         currentApprovalId = null;
@@ -1196,14 +1209,14 @@
         await runtimeMessage({type: "UPDATE_TASK_STATUS", task_id: taskId, status: "paused"});
         await chrome.storage.local.remove(["active_task_id", "active_running", "active_status", "active_mode"]);
         hostContext();
-        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED",
+        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", task_id: taskId, mode: currentMode, status: "failed",
           error: "Previous extension session ended. Start New Task to continue."});
         return;
       }
       if (!backendTask || backendTask.error || !["active", "paused"].includes(backendTask.status)) {
         await chrome.storage.local.remove(["active_task_id", "active_running", "active_status", "active_mode"]);
         hostContext();
-        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED",
+        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", task_id: taskId, mode: currentMode, status: "failed",
           error: backendTask?.error || `Restored task is ${backendTask?.status || "unavailable"}. Start New Task to continue.`});
         return;
       }
@@ -1212,7 +1225,7 @@
         await chrome.storage.local.remove(["active_task_id", "active_running", "active_status", "active_mode"]);
         await runtimeMessage({type: "UPDATE_TASK_STATUS", task_id: taskId, status: "halted"});
         hostContext();
-        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_HALTED", task_id: taskId,
+        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_HALTED", task_id: taskId, mode: currentMode, status: "halted",
           reason: "Demo Mode is restricted to StreamCove demonstration environment."});
         return;
       }
@@ -1238,7 +1251,7 @@
     } catch (error) {
       if (!runtimeInvalidated) {
         hostContext();
-        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", error: error.message});
+        postToAssistant({source: "SHADOW_CONTENT", type: "TASK_FAILED", task_id: taskId, mode: currentMode, status: "failed", error: error.message});
       }
     }
   }

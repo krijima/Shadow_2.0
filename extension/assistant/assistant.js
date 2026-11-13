@@ -11,6 +11,7 @@
   let detectionCount = 0;
   let stepCount = 0;
   let currentApprovalId = null;
+  let approvalCount = 0;
   let isMinimized = false;
 
   // ─── DOM References ──────────────────────────────────────────────────────────
@@ -78,6 +79,38 @@
       (sec) => sec.classList.add("hidden")
     );
     sectionEl.classList.remove("hidden");
+  }
+
+  function pluralize(count, singular, plural = `${singular}S`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+  }
+
+  function renderTerminalAudit(message, fallbackStatus) {
+    const auditTaskId = message.task_id || taskId || "";
+    const mode = String(message.mode || currentMode || "observe").toUpperCase();
+    const status = String(message.status || fallbackStatus || "completed").toUpperCase();
+    const detected = Array.isArray(message.detections) ? message.detections.length : detectionCount;
+    const approvals = Number.isFinite(message.approval_count) ? message.approval_count : approvalCount;
+    const reportUrl = auditTaskId ? `http://localhost:8001/api/evidence/${encodeURIComponent(auditTaskId)}/html` : "";
+
+    document.querySelectorAll("[data-terminal-audit]").forEach(card => {
+      card.classList.remove("hidden");
+      card.querySelector("[data-audit-status]").textContent = status;
+      card.querySelector("[data-audit-mode]").textContent = mode;
+      card.querySelector("[data-audit-steps]").textContent = pluralize(stepCount, "STEP");
+      card.querySelector("[data-audit-detections]").textContent = pluralize(detected, "PATTERN");
+      card.querySelector("[data-audit-approvals]").textContent = pluralize(approvals, "APPROVAL");
+    });
+
+    document.querySelectorAll("[data-audit-report-action]").forEach(button => {
+      button.disabled = !reportUrl;
+      button.dataset.reportUrl = reportUrl;
+    });
+  }
+
+  function openAuditReport(button) {
+    const reportUrl = button.dataset.reportUrl;
+    if (reportUrl) window.open(reportUrl, "_blank");
   }
 
   // ─── Live Timeline Renderer (Phase 2 Feature) ─────────────────────────────────
@@ -332,6 +365,7 @@
     goalText.textContent = instruction;
     stepCount = 0;
     detectionCount = 0;
+    approvalCount = 0;
     detectionCountEl.textContent = "0";
     detectionsList.innerHTML = "";
     noDetectionsText.classList.remove("hidden");
@@ -496,10 +530,8 @@
   });
 
   // Evidence Report Button
-  evidenceBtn.addEventListener("click", () => {
-    if (taskId) {
-      window.open(`http://localhost:8001/api/evidence/${taskId}/html`, "_blank");
-    }
+  document.querySelectorAll("[data-audit-report-action]").forEach(button => {
+    button.addEventListener("click", () => openAuditReport(button));
   });
 
   // Start Another Task
@@ -719,6 +751,7 @@
 
       case "APPROVAL_REQUIRED": {
         currentApprovalId = msg.approval_id;
+        approvalCount++;
         const isGuideMode = msg.mode === "guide";
         setAgentStatus("approval", isGuideMode ? "GUIDED STEP" : "APPROVAL NEEDED");
 
@@ -783,6 +816,8 @@
           : "Finished. Review on page.";
         if (msg.detections) handleDetections(msg.detections);
 
+        renderTerminalAudit(msg, "completed");
+
         addTimelineEvent({
           type: "active",
           actionTitle: "Goal achieved",
@@ -790,7 +825,6 @@
         });
 
         showSection(completionSection);
-        evidenceBtn.disabled = !taskId;
         break;
       }
 
@@ -809,6 +843,8 @@
 
         if (msg.detections) handleDetections(msg.detections);
 
+        renderTerminalAudit(msg, "halted");
+
         addTimelineEvent({
           type: "blocked",
           actionTitle: "Task halted",
@@ -816,13 +852,14 @@
         });
 
         showError(`Task Halted: ${msg.reason || "Safety boundary triggered."}`);
-        evidenceBtn.disabled = !taskId;
         break;
       }
 
       case "TASK_FAILED": {
         isRunning = false;
         setAgentStatus("failed", "HALTED");
+        if (msg.detections) handleDetections(msg.detections);
+        renderTerminalAudit(msg, "failed");
         showError(msg.error || "An unknown navigation error occurred.");
         break;
       }

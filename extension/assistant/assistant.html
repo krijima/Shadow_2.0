@@ -155,7 +155,20 @@
           </ul>
         </div>
 
-        <button class="btn btn-primary btn-block" id="evidenceBtn">
+        <div class="card terminal-audit-card hidden" data-terminal-audit>
+          <div class="card-header-compact">
+            <span class="card-label">TASK AUDIT SUMMARY</span>
+            <span class="terminal-status-badge" data-audit-status>—</span>
+          </div>
+          <div class="terminal-audit-grid">
+            <div><span>MODE</span><strong data-audit-mode>—</strong></div>
+            <div><span>STEPS</span><strong data-audit-steps>0 STEPS</strong></div>
+            <div><span>PATTERNS</span><strong data-audit-detections>0 PATTERNS</strong></div>
+            <div><span>APPROVALS</span><strong data-audit-approvals>0 APPROVALS</strong></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="evidenceBtn" data-audit-report-action>
           <svg class="btn-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           <span>View Audit Evidence Report</span>
         </button>
@@ -172,6 +185,23 @@
           <h2 class="result-title">Action Halted</h2>
           <p class="result-desc" id="errorMsg">An unexpected error occurred during page navigation.</p>
         </div>
+
+        <div class="card terminal-audit-card hidden" data-terminal-audit>
+          <div class="card-header-compact">
+            <span class="card-label">TASK AUDIT SUMMARY</span>
+            <span class="terminal-status-badge" data-audit-status>—</span>
+          </div>
+          <div class="terminal-audit-grid">
+            <div><span>MODE</span><strong data-audit-mode>—</strong></div>
+            <div><span>STEPS</span><strong data-audit-steps>0 STEPS</strong></div>
+            <div><span>PATTERNS</span><strong data-audit-detections>0 PATTERNS</strong></div>
+            <div><span>APPROVALS</span><strong data-audit-approvals>0 APPROVALS</strong></div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary btn-block" data-audit-report-action style="margin-top: 12px;">
+          <span>View Audit Evidence Report</span>
+        </button>
 
         <button class="btn btn-secondary btn-block" id="retryBtn" style="margin-top: 16px;">
           <span>+ Start New Task</span>
