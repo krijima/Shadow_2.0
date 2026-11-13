@@ -4,7 +4,7 @@ from test_navigation_modes_browser import provider_site, task_state
 from test_demo_panel_navigation import loaded_extension, panel, start, wait_for
 
 
-@pytest.mark.parametrize('decision', ['approve', 'reject', 'disabled'])
+@pytest.mark.parametrize('decision', ['approve', 'reject', 'disabled', 'delegated'])
 def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
     page, worker, events = provider_site
     body = '''<!doctype html><html><body><h1>Pocket FM</h1>
@@ -23,6 +23,11 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
       function cancelPlan(){localStorage.cancelClicks=Number(localStorage.cancelClicks||0)+1;
         view.innerHTML='<section role="dialog"><h2>Subscription cancelled</h2><p>Cancellation successful</p></section>'}
       </script></body></html>'''.replace('DISABLED', 'disabled' if decision == 'disabled' else '')
+    if decision == 'delegated':
+        body = body.replace('cursor:pointer', 'cursor:default').replace(
+            'onclick="openProfile()"', 'id="account-trigger"').replace(
+            'alt="Anonymous"', 'alt=""').replace(
+            'const view=', "document.addEventListener('click', event => { if(event.target.closest('#account-trigger')) openProfile(); }); const view=")
     def serve(route):
         if '/__shadow__/' in route.request.url:
             route.fallback()
@@ -32,10 +37,14 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
     page.goto('https://pocketfm.com/')
     page.locator('#shadow-assistant-frame').wait_for()
     events.clear()
-    start(page, 'observe', 'Cancel my Pocket FM subscription. Do not buy anything.')
+    # The first-page shortcut fills the instruction; Start runs the same-tab flow.
+    panel(page).locator('#modeBtnObserve').click()
+    panel(page).locator('#quickTagCancel').click()
+    assert 'Cancel my subscription' in panel(page).locator('#instructionInput').input_value()
+    panel(page).locator('#startBtn').click()
     if decision == 'disabled':
-        wait_for(page, lambda: panel(page).locator('#askUserModal:not(.hidden)').is_visible(), events, timeout=35)
-        assert 'disabled' in panel(page).locator('#askQuestion').inner_text().lower()
+        wait_for(page, lambda: 'disabled' in panel(page).locator('#timelineList').inner_text().lower(), events, timeout=35)
+        assert not panel(page).locator('#askUserModal:not(.hidden)').is_visible()
     else:
         wait_for(page, lambda: panel(page).locator('#approvalModal:not(.hidden)').is_visible(), events, timeout=35)
     assert page.evaluate('Number(localStorage.storeClicks||0)') == 0
@@ -46,8 +55,9 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
     if decision == 'disabled':
         assert task_state(worker)[1]['status'] == 'paused'
         return
-    panel(page).locator('#approveBtn' if decision == 'approve' else '#rejectBtn').click()
-    if decision == 'approve':
+    assert page.url == 'https://pocketfm.com/'
+    panel(page).locator('#approveBtn' if decision in ('approve', 'delegated') else '#rejectBtn').click()
+    if decision in ('approve', 'delegated'):
         wait_for(page, lambda: panel(page).locator('#headerStatusText').inner_text() == 'COMPLETED', events, timeout=30)
         assert page.evaluate('Number(localStorage.cancelClicks||0)') == 1
     else:

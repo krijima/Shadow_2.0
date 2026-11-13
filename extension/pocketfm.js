@@ -28,7 +28,10 @@
       if (!visible(node)) continue;
       const label = text(node);
       if (label.length > 160 || [...node.children].some(child => text(child) === label)) continue;
-      const target = clickable(node);
+      // Pocket FM uses delegated handlers on plain div/span elements. Exact
+      // verified route labels remain clickable through event bubbling even
+      // when the site provides neither a role nor a pointer cursor.
+      const target = clickable(node) || node;
       if (/^manage subscriptions$/i.test(label)) add(target, 'manage_subscriptions', 'Manage Subscriptions');
       if (/^cancel subscription$/i.test(label)) add(target, 'cancel_subscription', 'Cancel Subscription');
       if (/^(?:confirm cancellation|confirm cancel|yes,? cancel(?: subscription)?)$/i.test(label))
@@ -36,14 +39,15 @@
       if (/active subscriptions/i.test(bodyText) && /^\d+\s*mins?(?:\s+daily)?$/i.test(label))
         add(target, 'active_plan', label);
     }
-    for (const node of document.querySelectorAll('img,[aria-label],[title]')) {
-      const label = [node.getAttribute('alt'),node.getAttribute('aria-label'),node.getAttribute('title')].join(' ');
+    for (const node of document.querySelectorAll('img,[aria-label],[title],[data-testid],[class*="avatar" i],[class*="profile" i]')) {
+      const label = [node.getAttribute('alt'),node.getAttribute('aria-label'),node.getAttribute('title'),
+        node.getAttribute('data-testid'),node.getAttribute('class')].join(' ');
       const box = node.getBoundingClientRect();
-      const named = /\b(profile|avatar|anonymous|account)\b/i.test(label);
+      const named = /profile|avatar|anonymous|account/i.test(label) && box.width <= 150 && box.height <= 150;
       const headerAvatar = node.tagName === 'IMG' && box.top >= 0 && box.top < 100 &&
         box.left > innerWidth * 0.75 && box.width >= 20 && box.width <= 90 &&
         Math.abs(box.width - box.height) < 15;
-      if (named || headerAvatar) add(clickable(node), 'profile', 'Profile');
+      if (named || headerAvatar) add(clickable(node) || node, 'profile', 'Profile');
     }
     return found;
   }

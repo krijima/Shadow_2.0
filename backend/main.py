@@ -312,12 +312,13 @@ async def navigate_endpoint(body: NavigateRequest):
         status = 'completed' if completed else 'paused'
         update_task_status(task_id, status)
         log_action(task_id=task_id, step_number=(task.get('steps_taken') or 0) + 1,
-                   action_type='stop' if completed else 'ask_user', element_id='', element_text='',
+                   action_type='stop' if completed else 'highlight', element_id='', element_text='',
                    reason=reason, result=status)
-        return {'action': {'action': 'stop' if completed else 'ask_user', 'element_id': '',
+        return {'action': {'action': 'stop' if completed else 'highlight', 'element_id': '',
                            'value': '', 'reason': reason, 'confidence': 1.0},
                 'status': status, 'mode': task_mode, 'requires_approval': False,
-                'approval_id': None, 'blocked': False, 'detections': detections}
+                'approval_id': None, 'blocked': False, 'detections': detections,
+                'waiting_for_user': not completed, 'reversible': False, 'guidance': reason}
 
     if route_step and route_step.get("handoff"):
         reason = f"This subscription is billed through {route_step['handoff']}. Manage it there."

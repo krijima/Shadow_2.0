@@ -55,8 +55,9 @@ def test_disabled_pocket_cancel_is_not_approved_or_falsely_completed():
                     'Current plan details Amount ₹0 Status Active', enabled=False)
     assert data['requires_approval'] is False
     assert data['status'] == 'paused'
-    assert data['action']['action'] == 'ask_user'
-    assert 'disabled' in data['action']['reason'].lower()
+    assert data['action']['action'] == 'highlight'
+    assert data['waiting_for_user'] is True
+    assert 'disabled' in data['guidance'].lower()
 
 
 def test_pocket_faq_does_not_claim_completed_cancellation():

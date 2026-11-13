@@ -6,6 +6,19 @@ const statusText    = document.getElementById("statusText");
 const actionBtn     = document.getElementById("actionBtn");
 const actionBtnText = document.getElementById("actionBtnText");
 const infoText      = document.getElementById("infoText");
+const siteScripts = ['terminal_audit.js', 'pocketfm.js', 'navigation.js', 'content.js'];
+
+async function installSiteScripts(tabId, hostname, sitePattern) {
+  if (!["localhost", "127.0.0.1"].includes(hostname)) {
+    const scriptId = `shadow-${sitePattern.replace(/[^a-z0-9]/gi, "-")}`;
+    const registration = {id: scriptId, matches: [sitePattern], js: siteScripts,
+      runAt: 'document_idle', persistAcrossSessions: true};
+    const existing = await chrome.scripting.getRegisteredContentScripts({ids: [scriptId]});
+    if (existing.length) await chrome.scripting.updateContentScripts([registration]);
+    else await chrome.scripting.registerContentScripts([registration]);
+  }
+  await chrome.scripting.executeScript({target: {tabId}, files: siteScripts});
+}
 
 function isRestrictedUrl(url) {
   if (!url) return true;
@@ -60,7 +73,7 @@ async function initPopup() {
     }
 
     if (isAlive) {
-      setActiveState(tab.id, hostname);
+      setActiveState(tab.id, hostname, `${parsedUrl.protocol}//${parsedUrl.hostname}/*`);
     } else {
       setReadyToActivateState(tab.id, hostname, `${parsedUrl.protocol}//${parsedUrl.hostname}/*`);
     }
@@ -70,7 +83,7 @@ async function initPopup() {
   }
 }
 
-function setActiveState(tabId, hostname) {
+function setActiveState(tabId, hostname, sitePattern) {
   statusDot.className = "status-dot";
   statusText.textContent = "SHADOW is active on this tab";
   actionBtn.disabled = false;
@@ -79,6 +92,9 @@ function setActiveState(tabId, hostname) {
 
   actionBtn.onclick = async () => {
     try {
+      // Upgrade older saved registrations and already-open tabs too. The
+      // content controller's installation guard prevents duplicate listeners.
+      await installSiteScripts(tabId, hostname, sitePattern);
       await chrome.tabs.sendMessage(tabId, { type: "FOCUS_ASSISTANT" });
       window.close();
     } catch (e) {
@@ -109,17 +125,8 @@ function setReadyToActivateState(tabId, hostname, sitePattern) {
           actionBtnText.textContent = "Allow this site";
           return;
         }
-        const scriptId = `shadow-${sitePattern.replace(/[^a-z0-9]/gi, "-")}`;
-        const registration = {id: scriptId, matches: [sitePattern],
-          js: ["navigation.js", "content.js"], runAt: "document_idle", persistAcrossSessions: true};
-        const existing = await chrome.scripting.getRegisteredContentScripts({ids: [scriptId]});
-        if (existing.length) await chrome.scripting.updateContentScripts([registration]);
-        else await chrome.scripting.registerContentScripts([registration]);
       }
-      await chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: ["navigation.js", "content.js"]
-      });
+      await installSiteScripts(tabId, hostname, sitePattern);
 
       // 2. Record permitted domain in storage & backend
       const stored = await chrome.storage.local.get(["permitted_domains"]);

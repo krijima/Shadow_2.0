@@ -45,4 +45,4 @@ def match_pocketfm(snapshot):
                 'action': {'action': 'click', 'element_id': element['shadow_id'], 'value': '',
                            'reason': f'Pocket FM: {label}', 'confidence': 1.0}}
     return {**base, 'route_step': 'unavailable', 'pause_reason':
-            'The next Pocket FM subscription control is unavailable. Sign in and open the account page, then start again.'}
+            'SHADOW could not locate the next Pocket FM control on this page. Refresh Pocket FM and activate SHADOW again.'}
