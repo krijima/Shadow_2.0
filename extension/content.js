@@ -12,6 +12,7 @@
   let isLoopActive = false;
   let taskId = null;
   let currentApprovalId = null;
+  let pendingPocketApproval = null;
   let shadowIndex = 0;
   let assistantFrame = null;
   let currentMode = "observe";
@@ -443,7 +444,9 @@
     ];
     const dialogs = [...document.querySelectorAll('dialog[open], [role="dialog"], [aria-modal="true"]')].filter(isVisible);
     const observationRoot = dialogs[dialogs.length - 1] || document;
-    const allElements = observationRoot.querySelectorAll(selectors.join(","));
+    const pocketControls = currentMode === 'observe' ? (globalThis.ShadowPocketFM?.controls() || []) : [];
+    const pocketByNode = new Map(pocketControls.map(control => [control.node, control]));
+    const allElements = [...new Set([...pocketByNode.keys(), ...observationRoot.querySelectorAll(selectors.join(","))])];
 
     const elements = [];
     let autoIdx = shadowIndex;
@@ -475,7 +478,7 @@
         isChecked = el.getAttribute("aria-checked") === "true";
       }
 
-      const accessibleName = getAccessibleName(el);
+      const accessibleName = pocketByNode.get(el)?.label || getAccessibleName(el);
       const surrounding = getSurroundingContext(el);
       const isEnabled = !(el.disabled || el.getAttribute("aria-disabled") === "true");
 
@@ -499,6 +502,7 @@
           ? String(el.parentElement.open) : el.getAttribute("aria-expanded"),
         has_popup: Boolean(el.getAttribute("aria-haspopup") && el.getAttribute("aria-haspopup") !== "false"),
         menu_context: el.getAttribute("role") === "menuitem" || Boolean(el.closest('[role="menu"]')),
+        provider_control: pocketByNode.get(el)?.kind || '',
         bounding_rect: visuals.rect,
         computed_style: {
           display: visuals.display,
@@ -534,7 +538,8 @@
       },
       elements,
       elements_count: elements.length,
-      page_text: ((observationRoot === document ? document.body : observationRoot).innerText || "").trim().substring(0, 3000),
+      page_text: ((currentMode === 'observe' ? (globalThis.ShadowPocketFM?.contextText() || '') + '\n' : '') +
+        ((observationRoot === document ? document.body : observationRoot).innerText || "")).trim().substring(0, 3000),
     };
   }
 
@@ -738,6 +743,8 @@
         // Approval required?
         if (response.requires_approval) {
           currentApprovalId = response.approval_id;
+          pendingPocketApproval = response.route_provider === 'pocketfm'
+            ? {response, url: location.href, taskId} : null;
           await chrome.storage.local.set({active_running: false, active_status: "awaiting_approval"});
           const targetElId = (response.action && response.action.element_id) || "";
           if (targetElId) {
@@ -909,6 +916,7 @@
 
       case "START_TASK": {
         pageGuidance.reset();
+        pendingPocketApproval = null;
         taskId = msg.task_id;
         if (msg.mode) currentMode = msg.mode;
         running = true;
@@ -1004,6 +1012,15 @@
 
       case "APPROVE_ACTION": {
         const approvalTaskId = taskId;
+        if (msg.approved && pendingPocketApproval &&
+            (pendingPocketApproval.taskId !== taskId || pendingPocketApproval.url !== location.href ||
+             !pageGuidance.matches(pendingPocketApproval.response) ||
+             !pageGuidance.target(pendingPocketApproval.response)?.enabled)) {
+          running = false;
+          postToAssistant({source: 'SHADOW_CONTENT', type: 'TASK_PAUSED_WAITING',
+            reason: 'The cancellation control changed. Start a new task to review it again.'});
+          return;
+        }
         const approveResult = await runtimeMessage({
           type: "APPROVE_ACTION",
           approval_id: currentApprovalId || msg.approval_id,
@@ -1036,8 +1053,17 @@
           // Execute the approved action immediately on the page!
           if (approveResult.element_id || (approveResult.action && approveResult.action.element_id)) {
             const elId = approveResult.element_id || approveResult.action.element_id;
-            executeAction({ action: "click", element_id: elId });
+            if (pendingPocketApproval && (pendingPocketApproval.url !== location.href ||
+                !pageGuidance.matches(pendingPocketApproval.response))) {
+              running = false;
+              postToAssistant({source: 'SHADOW_CONTENT', type: 'TASK_PAUSED_WAITING',
+                reason: 'The cancellation control changed. Start a new task to review it again.'});
+              return;
+            }
+            const result = executeAction({ action: "click", element_id: elId });
+            if (result?.error) throw new Error(result.error);
           }
+          pendingPocketApproval = null;
           await sleep(1500);
           running = true;
           navigationLoop();

@@ -24,6 +24,7 @@
       ],
       "js": [
         "terminal_audit.js",
+        "pocketfm.js",
         "navigation.js",
         "content.js"
       ],

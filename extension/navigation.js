@@ -51,7 +51,7 @@
       return JSON.stringify([location.href, this.nodeLabel(heading),
         labels('dialog[open], [role="dialog"], [role="alertdialog"], [aria-modal="true"]'),
         labels('[role="menu"], [role="listbox"]'), expanded,
-        labels('details[open] > summary')]);
+        labels('details[open] > summary'), globalThis.ShadowPocketFM?.state() || null]);
     }
 
     observeAttemptKey(response) {
@@ -119,7 +119,7 @@
     matches(response) {
       const current = this.target(response), expected = response.navigation_target;
       if (!current || !expected) return false;
-      return ["tag", "type", "text", "accessible_name", "href", "in_form", "role", "controls", "expanded", "has_popup", "menu_context"]
+      return ["tag", "type", "text", "accessible_name", "href", "in_form", "role", "controls", "expanded", "has_popup", "menu_context", "provider_control"]
         .every(key => (current[key] ?? null) === (expected[key] ?? null));
     }
 

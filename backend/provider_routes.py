@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from urllib.parse import urlparse
+from pocketfm_route import is_pocketfm, match_pocketfm
 
 
 PROVIDER_ROUTES = {
@@ -60,6 +61,8 @@ def get_provider_route(url: str, instruction: str) -> dict | None:
     """Return route hints only for supported providers and cancellation tasks."""
     if not CANCELLATION_GOAL.search(instruction or ""):
         return None
+    if is_pocketfm(url):
+        return {'provider': 'pocketfm', 'help_url': 'https://pocketfm.com/'}
     host = (urlparse(url).hostname or "").lower().rstrip(".")
     for route in PROVIDER_ROUTES.values():
         if any(host == domain or host.endswith("." + domain) for domain in route["hosts"]):
@@ -97,6 +100,8 @@ def match_provider_action(route: dict | None, snapshot: dict) -> dict | None:
     """Match official route intents to visible controls on this exact DOM snapshot."""
     if not route:
         return None
+    if route['provider'] == 'pocketfm':
+        return match_pocketfm(snapshot)
     text = str(snapshot.get("page_text") or "")
     partner = PARTNER.search(text)
     if partner:

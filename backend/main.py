@@ -305,6 +305,20 @@ async def navigate_endpoint(body: NavigateRequest):
         if provider_route:
             route_step = match_provider_action(provider_route, validated_snapshot.model_dump())
 
+    if route_step and route_step.get('provider') == 'pocketfm' and (
+            route_step.get('pause_reason') or route_step.get('completed')):
+        completed = route_step.get('completed', False)
+        reason = 'Pocket FM confirms the subscription is cancelled.' if completed else route_step['pause_reason']
+        status = 'completed' if completed else 'paused'
+        update_task_status(task_id, status)
+        log_action(task_id=task_id, step_number=(task.get('steps_taken') or 0) + 1,
+                   action_type='stop' if completed else 'ask_user', element_id='', element_text='',
+                   reason=reason, result=status)
+        return {'action': {'action': 'stop' if completed else 'ask_user', 'element_id': '',
+                           'value': '', 'reason': reason, 'confidence': 1.0},
+                'status': status, 'mode': task_mode, 'requires_approval': False,
+                'approval_id': None, 'blocked': False, 'detections': detections}
+
     if route_step and route_step.get("handoff"):
         reason = f"This subscription is billed through {route_step['handoff']}. Manage it there."
         update_task_status(task_id, "paused")
@@ -431,6 +445,23 @@ async def navigate_endpoint(body: NavigateRequest):
                     if candidate_allowed:
                         action = candidate_action.model_dump()
         policy = classify_navigation(action, page_snapshot)
+        if (task_mode == 'observe' and route_step and route_step.get('provider') == 'pocketfm'
+                and route_step.get('final')):
+            # Pocket FM is the explicitly requested automatic route. A final
+            # cancellation still uses the existing single-use approval gate.
+            approval_id = create_approval(task_id=task_id,
+                action_description=f"Cancel Pocket FM subscription: {policy['label']}",
+                target_url=url, element_id=action.get('element_id', ''))
+            update_task_status(task_id, 'paused')
+            log_action(task_id=task_id, step_number=(task.get('steps_taken') or 0) + 1,
+                action_type='ask_user', element_id=action.get('element_id', ''),
+                element_text=policy['label'], reason='Explicit approval required before Pocket FM cancellation.',
+                result='awaiting_approval')
+            return {'action': {**action, 'element_text': policy['label']},
+                'requires_approval': True, 'approval_id': approval_id, 'status': 'paused',
+                'mode': task_mode, 'blocked': False, 'detections': detections,
+                'route_provider': 'pocketfm', 'navigation_target': policy['target'],
+                'reason': 'This changes your real Pocket FM subscription. Approve cancellation or reject to keep it.'}
         if (task_mode == "observe" and not policy["reversible"]
                 and urlparse(url).hostname == "github.com"
                 and re.search(r"\b(cancel|confirm|downgrade|delete|terminate)\b", policy["label"], re.I)):

@@ -175,6 +175,7 @@ class SnapshotBoundary:
                 "expanded": str(el.get("expanded"))[:16] if el.get("expanded") is not None else None,
                 "has_popup": bool(el.get("has_popup", False)),
                 "menu_context": bool(el.get("menu_context", False)),
+                "provider_control": str(el.get("provider_control") or "")[:40],
             })
 
         # Flag potential injection text in snapshot for containment

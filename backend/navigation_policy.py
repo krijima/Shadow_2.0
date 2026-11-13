@@ -5,6 +5,7 @@ click it. Ambiguity is a website review, never permission to submit a form.
 """
 import re
 from urllib.parse import urljoin, urlparse, parse_qs, unquote
+from pocketfm_route import is_pocketfm, match_pocketfm
 
 MUTATION = re.compile(r"\b(cancel|confirm|delete|remove|terminate|unsubscribe|purchase|buy|pay|upgrade|downgrade|accept|agree|save|submit|apply|renew|renewal|send|sign|end membership|close account|leave|disconnect|disable|deactivate|log ?out|sign ?out|turn off|switch plan|change plan)\b", re.I)
 NAVIGATION = re.compile(
@@ -43,13 +44,18 @@ def classify_navigation(action: dict, snapshot: dict) -> dict:
         and urlparse(snapshot.get("url", "")).path.startswith("/settings/")
         and navigation_label.casefold() in {"billing and licensing", "overview", "licensing"})
     reversible = False
+    pocket_step = match_pocketfm(snapshot) if is_pocketfm(snapshot.get('url', '')) else None
+    pocket_navigation = bool(pocket_step and pocket_step.get('reversible')
+        and pocket_step.get('action', {}).get('element_id') == element_id)
     if (element and action.get("action") == "click" and action.get("confidence", 0) >= 0.85
             and element.get("visible", True) and element.get("enabled", True)
             and (NAVIGATION.fullmatch(navigation_label) or manage_in_subscription_context
-                 or github_billing_navigation)
+                 or github_billing_navigation or pocket_navigation)
             and not MUTATION.search(risk_text)):
         tag = element.get("tag")
-        if tag == "a" and element.get("href"):
+        if pocket_navigation and tag != 'a' and not element.get('in_form', False) and element.get('type') != 'submit':
+            reversible = True
+        elif tag == "a" and element.get("href"):
             source = urlparse(snapshot.get("url", ""))
             target = urlparse(urljoin(snapshot.get("url", ""), element["href"]))
             query = parse_qs(target.query)
@@ -80,7 +86,7 @@ def classify_navigation(action: dict, snapshot: dict) -> dict:
         guidance = f"Open {visible_label}." if reversible else f"{visible_label}? Review on page."
     return {"reversible": bool(reversible), "label": visible_label,
             "target": {key: element.get(key) for key in
-                       ("tag", "type", "text", "accessible_name", "href", "in_form", "role", "controls", "expanded", "has_popup", "menu_context")},
+                       ("tag", "type", "text", "accessible_name", "href", "in_form", "role", "controls", "expanded", "has_popup", "menu_context", "provider_control")},
             "guidance": guidance}
 
 

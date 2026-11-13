@@ -95,7 +95,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     chrome.scripting.executeScript({
       target: { tabId },
-      files: ["navigation.js", "content.js"]
+      files: ["terminal_audit.js", "pocketfm.js", "navigation.js", "content.js"]
     }).then(() => {
       sendResponse({ ok: true, tab_id: tabId });
     }).catch(err => {

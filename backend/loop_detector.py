@@ -63,6 +63,11 @@ def extract_semantic_state(snapshot: Dict[str, Any], semantic_only: bool = False
 
     dialog_summary = " | ".join(sorted(set(dialog_titles[:4]))) if dialog_titles else "none"
     page_summary = " | ".join(sorted(set(page_titles[:2]))) if page_titles else "none"
+    if semantic_only:
+        from pocketfm_route import is_pocketfm, LABELS
+        if is_pocketfm(url):
+            page_summary += ' | ' + '|'.join(sorted({el.get('provider_control', '') for el in elements
+                if el.get('provider_control') in LABELS and el.get('visible', True)}))
     menu_summary = " | ".join(sorted(set(menu_items[:6]))) if menu_items else "none"
 
     # 2. Extract stable interactive control signatures (tag, role, normalized_text)

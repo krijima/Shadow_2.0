@@ -20,7 +20,7 @@ GOAL = "Cancel my subscription. Do not accept discount offers or upgrades."
 
 
 @pytest.fixture
-def loaded_extension(tmp_path):
+def loaded_extension(tmp_path, request):
     events = []
     with sync_playwright() as p:
         harness = os.environ.get("SHADOW_EXTENSION_HARNESS") == "1"
@@ -32,6 +32,9 @@ def loaded_extension(tmp_path):
                   f"--load-extension={ROOT / 'extension'}"],
         )
         if harness:
+            if request.module.__name__ == 'test_pocketfm_browser':
+                context.route(APP + '/static/index.html', lambda route: route.fulfill(
+                    content_type='text/html', body='<html><body><h1>Fixture bootstrap</h1></body></html>'))
             # Explicitly NOT an installed-extension check. Run the unmodified
             # scripts with only Chrome's transport/storage APIs bridged.
             context.route("**/__shadow__/**", lambda route: route.fulfill(
@@ -57,6 +60,8 @@ def loaded_extension(tmp_path):
               }}};
             })();"""
             context.add_init_script(bridge + "\n" + (ROOT / "extension/background.js").read_text(encoding="utf-8")
+                                    + "\n" + (ROOT / "extension/terminal_audit.js").read_text(encoding="utf-8")
+                                    + "\n" + (ROOT / "extension/pocketfm.js").read_text(encoding="utf-8")
                                     + "\n" + (ROOT / "extension/navigation.js").read_text(encoding="utf-8")
                                     + "\nif (window === window.top) {\n" + (ROOT / "extension/content.js").read_text(encoding="utf-8") + "\n}")
         def record(response):
