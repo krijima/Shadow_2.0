@@ -48,3 +48,22 @@ def test_minimized_sphere_reopens_light_panel_without_losing_input(loaded_extens
     assert page.locator('#shadow-assistant-frame').bounding_box()['width'] >= 400
     page.screenshot(path=str(tmp_path / 'light-panel.png'))
     print(f'UI screenshots: {tmp_path}')
+
+
+def test_small_window_keeps_start_visible_and_layout_settled(loaded_extension, tmp_path):
+    page, worker, events = loaded_extension
+    page.set_viewport_size({'width': 380, 'height': 390})
+    page.wait_for_timeout(800)
+    ui = panel(page)
+    frame = page.locator('#shadow-assistant-frame').bounding_box()
+    button = ui.locator('#startBtn').bounding_box()
+    assert button['y'] >= frame['y']
+    assert button['y'] + button['height'] <= frame['y'] + frame['height']
+    samples = []
+    for _ in range(5):
+        page.wait_for_timeout(150)
+        samples.append(page.locator('#shadow-assistant-frame').bounding_box())
+    assert all(sample == samples[0] for sample in samples)
+    ui.locator('#startBtn').click()
+    assert ui.locator('#instructionInput').evaluate('(node) => document.activeElement === node')
+    page.screenshot(path=str(tmp_path / 'small-window-panel.png'))

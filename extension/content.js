@@ -871,9 +871,9 @@
       "z-index: 2147483647",
       "border: none",
       "border-radius: 14px",
-      "box-shadow: 0 16px 48px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06)",
+      "box-shadow: 0 12px 36px rgba(15,23,42,0.16)",
       "background: transparent",
-      "transition: height 0.25s ease, width 0.25s ease",
+      "transition: none",
       "color-scheme: normal",
     ].join(";");
     frame.allow = "";

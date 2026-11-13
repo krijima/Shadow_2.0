@@ -69,6 +69,16 @@
   const askAnswer            = document.getElementById("askAnswer");
   const submitAnswerBtn      = document.getElementById("submitAnswerBtn");
 
+  // Keep the primary actions outside the scrolling cards, including in short
+  // windows. Moving existing controls preserves their IDs and event handlers.
+  const controlsToolbar = document.querySelector('.controls-toolbar');
+  const actionBar = document.createElement('footer');
+  actionBar.className = 'action-bar';
+  actionBar.setAttribute('aria-label', 'Task actions');
+  actionBar.append(startBtn, controlsToolbar);
+  appContainer.appendChild(actionBar);
+  controlsToolbar.classList.add('hidden');
+
   // ─── Status Controller ────────────────────────────────────────────────────────
   function setAgentStatus(statusKey, labelText) {
     headerStatusPill.className = "ai-status-pill " + statusKey;
@@ -80,6 +90,9 @@
       (sec) => sec.classList.add("hidden")
     );
     sectionEl.classList.remove("hidden");
+    startBtn.classList.toggle('hidden', sectionEl !== taskInputSection);
+    controlsToolbar.classList.toggle('hidden', sectionEl !== activeTaskSection);
+    actionBar.classList.toggle('hidden', sectionEl !== taskInputSection && sectionEl !== activeTaskSection);
   }
 
   function pluralize(count, singular, plural = `${singular}S`) {
@@ -279,7 +292,8 @@
       if (isMinimized) return;
       const sections = [...contentArea.children].filter(node => getComputedStyle(node).display !== 'none');
       const style = getComputedStyle(contentArea);
-      const height = Math.min(640, Math.max(300, Math.ceil(dragHeader.getBoundingClientRect().height +
+      const borders = appContainer.offsetHeight - appContainer.clientHeight;
+      const height = Math.min(640, Math.max(300, Math.ceil(borders + dragHeader.getBoundingClientRect().height + actionBar.getBoundingClientRect().height +
         parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) +
         sections.reduce((sum, node) => sum + node.getBoundingClientRect().height, 0) +
         Math.max(0, sections.length - 1) * parseFloat(style.gap || 0))));
@@ -290,7 +304,7 @@
     });
   }
   const panelSizeObserver = new ResizeObserver(fitPanel);
-  [...contentArea.children, dragHeader].forEach(node => panelSizeObserver.observe(node));
+  [...contentArea.children, dragHeader, actionBar].forEach(node => panelSizeObserver.observe(node));
   fitPanel();
 
   // ─── Dragging Support for Floating Assistant ───────────────────────────────────
