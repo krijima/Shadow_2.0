@@ -68,7 +68,7 @@ def test_pocketfm_one_start_then_only_final_approval(provider_site, decision):
         assert page.evaluate('Number(localStorage.cancelClicks||0)') == 0
 
 
-def test_pocketfm_guide_waits_for_each_manual_website_click(provider_site):
+def test_pocketfm_guide_waits_for_each_manual_website_click(provider_site, tmp_path):
     page, worker, events = provider_site
     body = r'''<html><head><meta charset="utf-8"></head><body><h1>Pocket FM</h1>
       <button aria-label="Profile" onclick="step('manage')">Profile</button><div id="view"></div>
@@ -76,7 +76,7 @@ def test_pocketfm_guide_waits_for_each_manual_website_click(provider_site):
       const view = document.querySelector('#view');
       function step(name){localStorage[name]=Number(localStorage[name]||0)+1;
         if(name==='manage') view.innerHTML='<button onclick="step(\'plan\')">Manage Subscriptions</button>';
-        if(name==='plan') view.innerHTML='<h2>Active subscriptions</h2><button onclick="step(\'details\')">60 mins daily</button>';
+        if(name==='plan') view.innerHTML='<h2>Active subscriptions</h2><div style="cursor:pointer" onclick="step(\'details\')"><h5>60 mins daily</h5><p>Premium · Renews monthly</p><span data-next-chevron>›</span></div>';
         if(name==='details') view.innerHTML='<h2>Current plan details</h2><button onclick="step(\'cancel\')">Cancel Subscription</button>';
       }
       </script></body></html>'''
@@ -92,10 +92,19 @@ def test_pocketfm_guide_waits_for_each_manual_website_click(provider_site):
     for label, counter in [('Profile', 'manage'), ('Manage Subscriptions', 'plan'),
                            ('60 mins daily', 'details'), ('Cancel Subscription', 'cancel')]:
         wait_for(page, lambda: page.locator('.shadow-guidance-target').count() == 1 and
-            page.locator('.shadow-guidance-target').inner_text() == label, events, timeout=25)
+            label in page.locator('.shadow-guidance-target').inner_text(), events, timeout=25)
         page.wait_for_timeout(700)
         assert page.evaluate(f'Number(localStorage.{counter}||0)') == 0
-        if counter != 'cancel':
+        if counter == 'details':
+            page.locator('[data-next-chevron]').click()
+        elif counter != 'cancel':
             page.locator('.shadow-guidance-target').click()
     assert task_state(worker)[1]['status'] == 'paused'
     assert page.evaluate('Number(localStorage.cancel||0)') == 0
+    card = panel(page).locator('.goal-card')
+    colors = card.evaluate('(node) => ({bg:getComputedStyle(node).backgroundColor, image:getComputedStyle(node).backgroundImage})')
+    assert colors == {'bg': 'rgb(255, 255, 255)', 'image': 'none'}
+    assert 'YOUR OBJECTIVE' in card.inner_text()
+    assert panel(page).locator('#goalText').inner_text() == 'Cancel my Pocket FM subscription'
+    page.screenshot(path=str(tmp_path / 'compact-guide.png'))
+    print(f'Guide screenshot: {tmp_path / "compact-guide.png"}')

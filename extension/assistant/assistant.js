@@ -271,6 +271,28 @@
     window.parent.postMessage(msg, "*");
   }
 
+  // Fit the panel to its visible cards instead of leaving a fixed empty tail.
+  let sizeFrame = 0, lastPanelHeight = 0;
+  function fitPanel() {
+    cancelAnimationFrame(sizeFrame);
+    sizeFrame = requestAnimationFrame(() => {
+      if (isMinimized) return;
+      const sections = [...contentArea.children].filter(node => getComputedStyle(node).display !== 'none');
+      const style = getComputedStyle(contentArea);
+      const height = Math.min(640, Math.max(300, Math.ceil(dragHeader.getBoundingClientRect().height +
+        parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) +
+        sections.reduce((sum, node) => sum + node.getBoundingClientRect().height, 0) +
+        Math.max(0, sections.length - 1) * parseFloat(style.gap || 0))));
+      if (height !== lastPanelHeight) {
+        lastPanelHeight = height;
+        postToParent({source: 'SHADOW_ASSISTANT', type: 'SET_HEIGHT', height});
+      }
+    });
+  }
+  const panelSizeObserver = new ResizeObserver(fitPanel);
+  [...contentArea.children, dragHeader].forEach(node => panelSizeObserver.observe(node));
+  fitPanel();
+
   // ─── Dragging Support for Floating Assistant ───────────────────────────────────
   let isDragging = false;
   let dragPointerId = null;
@@ -465,6 +487,7 @@
     launcherBtn.classList.toggle('hidden', !minimized);
     postToParent({source: 'SHADOW_ASSISTANT', type: 'SET_PANEL_SIZE', minimized});
     if (!minimized) minimizeBtn.focus();
+    if (!minimized) { lastPanelHeight = 0; fitPanel(); }
   }
   minimizeBtn.addEventListener('click', () => setMinimized(true));
   launcherBtn.addEventListener('click', () => setMinimized(false));

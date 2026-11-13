@@ -9,11 +9,15 @@
     return box.width > 1 && box.height > 1 && style.display !== 'none' && style.visibility !== 'hidden';
   };
   function clickable(node) {
+    let pointerTarget = null;
     for (let current = node, depth = 0; current && depth < 5; current = current.parentElement, depth++) {
-      if (current.matches('button, a[href], [role="button"], [role="menuitem"], [tabindex="0"]') ||
-          getComputedStyle(current).cursor === 'pointer') return current;
+      if (current.matches('button, a[href], [role="button"], [role="menuitem"], [tabindex="0"]')) return current;
+      // Cursor is inherited: the heading and chevron share the row's pointer
+      // cursor. Highlight the actual row so either manual click is recognized.
+      if (!pointerTarget && getComputedStyle(current).cursor === 'pointer' &&
+          (!current.parentElement || getComputedStyle(current.parentElement).cursor !== 'pointer')) pointerTarget = current;
     }
-    return null;
+    return pointerTarget;
   }
   function candidateNodes(hint) {
     const nodes = new Set();
@@ -52,7 +56,7 @@
       if (/^cancel subscription$/i.test(label)) add(target, 'cancel_subscription', 'Cancel Subscription');
       if (/^(?:confirm cancellation|confirm cancel|yes,? cancel(?: subscription)?)$/i.test(label))
         add(target, 'confirm_cancel', label);
-      if (/active subscriptions/i.test(bodyText) && /^\d+\s*mins?(?:\s+daily)?$/i.test(label))
+      if (/active subscriptions/i.test(bodyText) && !/current plan details/i.test(bodyText) && /^\d+\s*mins?(?:\s+daily)?$/i.test(label))
         add(target, 'active_plan', label);
     }
     for (const node of document.querySelectorAll('img,[aria-label],[title],[data-testid],[class*="avatar" i],[class*="profile" i]')) {

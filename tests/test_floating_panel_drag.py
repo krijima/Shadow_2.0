@@ -36,7 +36,7 @@ def test_minimized_sphere_reopens_light_panel_without_losing_input(loaded_extens
     ui.locator('#launcherBtn').click()
     page.wait_for_timeout(400)
     frame = page.locator('#shadow-assistant-frame').bounding_box()
-    assert frame['width'] >= 400 and frame['height'] >= 500
+    assert frame['width'] >= 400 and 300 <= frame['height'] <= 520
     assert ui.locator('#instructionInput').input_value() == 'Keep this objective'
     colors = ui.locator('#app').evaluate('(node) => ({bg:getComputedStyle(node).backgroundColor, color:getComputedStyle(node).color})')
     assert colors['bg'] == 'rgb(248, 250, 252)'

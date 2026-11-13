@@ -100,6 +100,10 @@ def wait_for(page, predicate, events, timeout=120):
         if predicate():
             return
         if panel(page).locator("#errorSection:not(.hidden), #completionSection:not(.hidden)").is_visible():
+            # Completion can arrive between the first predicate and this UI
+            # check. Recheck it before treating a terminal panel as a failure.
+            if predicate():
+                return
             break
     pytest.fail(f"Timed out at {page.url}\nPanel: {panel(page).locator('body').inner_text()}\nTrace: {json.dumps(events[-8:], indent=2)}")
 
