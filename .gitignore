@@ -97,3 +97,10 @@ tmp/
 /scripts/capture_phase5_evidence.py
 /scripts/capture_phase6_evidence.py
 /scripts/capture_real_web_guidance_evidence.py
+
+# Local project documents and launcher
+/ARCHITECTURE.md
+/DEMO_GUIDE.md
+/JUDGE_QA.md
+/LIMITATIONS.md
+/START_DEMO.ps1
